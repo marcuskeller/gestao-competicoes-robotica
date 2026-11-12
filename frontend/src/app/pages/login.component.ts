@@ -11,6 +11,13 @@ const TIPOS_CONTA: { valor: TipoConta; rotulo: string }[] = [
   { valor: 'participante', rotulo: 'Participante ou escola' },
   { valor: 'empresa', rotulo: 'Empresa apoiadora' },
 ];
+const TIPOS_LOGIN: { valor: TipoConta | 'escola'; rotulo: string }[] = [
+  { valor: 'administrador', rotulo: 'Administrador' },
+  { valor: 'voluntario', rotulo: 'Voluntário' },
+  { valor: 'escola', rotulo: 'Escola' },
+  { valor: 'participante', rotulo: 'Participante' },
+  { valor: 'empresa', rotulo: 'Empresa apoiadora' },
+];
 
 const TURNOS_VOLUNTARIO = [
   '9/11 · Manhã',
@@ -78,7 +85,7 @@ const TURNOS_VOLUNTARIO = [
                 [value]="tipoLogin()"
                 (change)="atualizarTipoLogin($event)"
               >
-                @for (tipo of tiposConta; track tipo.valor) {
+                @for (tipo of tiposLogin; track tipo.valor) {
                   <option [value]="tipo.valor">{{ tipo.rotulo }}</option>
                 }
               </select>
@@ -94,7 +101,7 @@ const TURNOS_VOLUNTARIO = [
                   >
                     <span class="min-w-0 flex-1">
                       <span class="block truncate font-semibold">
-                        {{ usuario.organizacao || usuario.nome }}
+                        {{ usuario.tipo_participante === 'escola' ? (usuario.organizacao || usuario.nome) : usuario.nome }}
                       </span>
                       <span class="block truncate text-xs font-normal opacity-65">
                         {{ usuario.email }}
@@ -301,9 +308,10 @@ export class LoginComponent {
   private readonly router = inject(Router);
   readonly perfis = PERFIS;
   readonly tiposConta = TIPOS_CONTA;
+  readonly tiposLogin = TIPOS_LOGIN;
   readonly turnosVoluntario = TURNOS_VOLUNTARIO;
   readonly modo = signal<'entrar' | 'cadastrar'>('entrar');
-  readonly tipoLogin = signal<TipoConta>('administrador');
+  readonly tipoLogin = signal<TipoConta | 'escola'>('participante');
   readonly tipoCadastro = signal<TipoConta>('voluntario');
   readonly tipoParticipante = signal<'pessoa_fisica' | 'escola'>('pessoa_fisica');
   readonly cargoVoluntarioId = signal<number | ''>('');
@@ -331,11 +339,16 @@ export class LoginComponent {
   );
 
   readonly contasFiltradas = computed(() =>
-    this.store.db().usuarios.filter((usuario) => this.tipoConta(usuario) === this.tipoLogin()),
+    this.store.db().usuarios.filter((usuario) => {
+      const tipo = this.tipoLogin();
+      if (tipo === 'escola') return this.tipoConta(usuario) === 'participante' && usuario.tipo_participante === 'escola';
+      if (tipo === 'participante') return this.tipoConta(usuario) === 'participante' && usuario.tipo_participante !== 'escola';
+      return this.tipoConta(usuario) === tipo;
+    }),
   );
 
   atualizarTipoLogin(event: Event): void {
-    this.tipoLogin.set(this.valorDo(event) as TipoConta);
+    this.tipoLogin.set(this.valorDo(event) as TipoConta | 'escola');
   }
 
   atualizarTipoCadastro(event: Event): void {
@@ -362,7 +375,7 @@ export class LoginComponent {
   rotuloAtuacao(usuario: Usuario): string {
     if (this.tipoConta(usuario) === 'administrador') return 'Administração';
     if (this.tipoConta(usuario) === 'empresa') return 'Empresa apoiadora';
-    if (this.tipoConta(usuario) === 'participante') return 'Participante';
+    if (this.tipoConta(usuario) === 'participante') return usuario.tipo_participante === 'escola' ? 'Escola' : 'Participante';
     return this.perfis[usuario.perfil].rotulo;
   }
 
