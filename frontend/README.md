@@ -73,9 +73,12 @@ As áreas por conta ficam em `/app/voluntario`, `/app/participante` e `/app/parc
 `/app/usuarios` administra listas, permissões e vagas voluntárias.
 
 O cadastro demo aceita Administração, Voluntariado, Participante/Escola e Empresa apoiadora.
-As vagas voluntárias são limitadas pelo total configurado. Escolas cadastram CNPJ, modalidade,
-equipe e estudantes; empresas enviam uma proposta de apoio financeiro. As propostas não geram
-cobrança ou pagamento.
+O primeiro passo cria somente a conta da pessoa ou escola; depois de entrar, o participante
+pode criar equipes e cadastrar seus integrantes. A inscrição é enviada para análise quando o
+período da modalidade está aberto. Voluntários informam CPF, telefone, disponibilidade e cargo;
+as vagas são limitadas pelo total configurado. Empresas informam apenas os dados da conta no
+cadastro e, dentro do portal, descrevem o tipo e os itens/serviços que pretendem doar. Uma prévia
+mostra como a proposta será apresentada antes do envio. Propostas não geram cobrança ou pagamento.
 
 ## Fluxo de demonstração
 
@@ -110,6 +113,6 @@ menu móvel e cadastro de uma edição com duas equipes até gerar um confronto.
 
 O MVP do frontend permite cadastros e o fluxo principal local. Ainda faltam edição
 e exclusão completas dos cadastros, gestão avançada de grupos e agendamento,
-chaves eliminatórias/finais, backend Laravel, PostgreSQL, Sanctum, auditoria real,
+chaves eliminatórias/finais, backend Kotlin/Spring Boot, PostgreSQL, Spring Security, auditoria real,
 API pública e sincronização entre dispositivos/abas já abertas. IPs da auditoria
 são simulados. A geração de chaveamento oferecida pela UI é somente por grupos.

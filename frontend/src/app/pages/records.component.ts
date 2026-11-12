@@ -264,6 +264,7 @@ import type { Resultado, StatusEdicao } from '../core/models';
           id="reason"
           class="textarea w-full mt-2"
           name="reason"
+          placeholder="Ex.: Os pontos foram corrigidos após a revisão da súmula."
           [(ngModel)]="reason"
           required
         ></textarea>

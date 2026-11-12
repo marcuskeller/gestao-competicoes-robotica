@@ -85,8 +85,11 @@ const PERMISSOES_VOLUNTARIO = [
               <div class="min-w-0">
                 <h2 class="font-semibold">{{ item.usuario?.organizacao || item.usuario?.nome }}</h2>
                 <p class="break-all text-sm text-base-content/60">{{ item.usuario?.email }} · CNPJ {{ item.parceria.cnpj }}</p>
-                <p class="mt-2 text-sm">Proposta: {{ item.parceria.valor_proposto | currency: 'BRL' }} · {{ rotuloStatusParceria(item.parceria.status) }}</p>
-                <p class="mt-1 text-sm text-base-content/60">{{ item.parceria.mensagem }}</p>
+                <p class="mt-2 text-sm">{{ rotuloTipoApoio(item.parceria.tipo_apoio) }} · {{ rotuloStatusParceria(item.parceria.status) }}</p>
+                @if (item.parceria.valor_proposto > 0) {
+                  <p class="mt-1 font-semibold">{{ item.parceria.valor_proposto | currency: 'BRL' }}</p>
+                }
+                <p class="mt-1 whitespace-pre-wrap text-sm text-base-content/60">{{ item.parceria.descricao_doacao || item.parceria.mensagem }}</p>
               </div>
               @if (item.parceria.status === 'em_analise') {
                 <div class="flex shrink-0 gap-2">
@@ -104,26 +107,21 @@ const PERMISSOES_VOLUNTARIO = [
 
     @if (aba() === 'participantes') {
       <section class="mt-5 grid gap-3">
-        @for (item of participantes(); track item.cadastro.id) {
+        @for (item of participantes(); track item.usuario.id) {
           <article class="rounded-xl border border-base-300 bg-base-100 p-4 sm:p-5">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div class="min-w-0">
-                <span class="badge badge-outline">{{ item.cadastro.tipo === 'escola' ? 'Escola / CNPJ' : 'Pessoa física' }}</span>
-                <h2 class="mt-2 font-semibold">{{ item.usuario?.organizacao || item.usuario?.nome }}</h2>
-                <p class="break-all text-sm text-base-content/60">Contato: {{ item.usuario?.nome }} · {{ item.usuario?.email }}</p>
-                @if (item.cadastro.tipo === 'escola') {
-                  <p class="mt-1 text-sm">Equipe: {{ item.cadastro.nome_equipe }} · {{ item.cadastro.alunos.length }} integrante(s)</p>
-                } @else {
-                  <p class="mt-1 text-sm">{{ item.cadastro.nome_escola }} · {{ item.cadastro.serie }} · Responsável: {{ item.cadastro.responsavel }}</p>
+                <span class="badge badge-outline">{{ item.usuario.tipo_participante === 'escola' ? 'Escola / CNPJ' : 'Pessoa física' }}</span>
+                <h2 class="mt-2 font-semibold">{{ item.usuario.organizacao || item.usuario.nome }}</h2>
+                <p class="break-all text-sm text-base-content/60">Contato: {{ item.usuario.nome }} · {{ item.usuario.email }}</p>
+                @if (item.usuario.telefone) {
+                  <p class="mt-1 text-sm text-base-content/65">Telefone: {{ item.usuario.telefone }}</p>
                 }
-                <p class="mt-1 text-sm text-base-content/60">{{ modalidadeNome(item.cadastro.modalidade_id) }} · {{ rotuloStatusParticipante(item.cadastro.status) }}</p>
+                @if (item.usuario.cnpj) {
+                  <p class="mt-1 text-sm text-base-content/65">CNPJ: {{ item.usuario.cnpj }}</p>
+                }
+                <p class="mt-2 text-sm text-base-content/60">{{ item.equipes }} equipe(s) cadastrada(s) · {{ item.cadastrosLegados }} inscrição(ões) anterior(es)</p>
               </div>
-              @if (item.cadastro.status === 'pendente') {
-                <div class="flex shrink-0 gap-2">
-                  <button class="btn btn-primary btn-sm min-h-11 sm:min-h-8" (click)="avaliarParticipante(item.cadastro.id, 'aprovada')">Aprovar</button>
-                  <button class="btn btn-ghost btn-sm min-h-11 sm:min-h-8 text-error" (click)="avaliarParticipante(item.cadastro.id, 'rejeitada')">Recusar</button>
-                </div>
-              }
             </div>
           </article>
         } @empty {
@@ -138,15 +136,15 @@ const PERMISSOES_VOLUNTARIO = [
           <h2 class="font-semibold">Criar cargo voluntário</h2>
           <label class="form-control mt-3 w-full">
             <span class="label-text mb-1">Nome do cargo</span>
-            <input class="input input-bordered w-full" required [value]="nomeCargo()" (input)="nomeCargo.set(valorDo($event))" />
+            <input class="input input-bordered w-full" required placeholder="Ex.: Apoio de arena" [value]="nomeCargo()" (input)="nomeCargo.set(valorDo($event))" />
           </label>
           <label class="form-control mt-3 w-full">
             <span class="label-text mb-1">Descrição</span>
-            <textarea class="textarea textarea-bordered w-full" rows="3" [value]="descricaoCargo()" (input)="descricaoCargo.set(valorDo($event))"></textarea>
+            <textarea class="textarea textarea-bordered w-full" rows="3" placeholder="Ex.: Preparar pistas, arenas e materiais." [value]="descricaoCargo()" (input)="descricaoCargo.set(valorDo($event))"></textarea>
           </label>
           <label class="form-control mt-3 w-full">
             <span class="label-text mb-1">Vagas</span>
-            <input class="input input-bordered w-full" type="number" min="1" step="1" required [value]="vagasCargo()" (input)="vagasCargo.set(+valorDo($event))" />
+            <input class="input input-bordered w-full" type="number" min="1" step="1" required placeholder="Ex.: 5" [value]="vagasCargo()" (input)="vagasCargo.set(valorDo($event))" />
           </label>
           <button class="btn btn-primary mt-4 w-full" type="submit">Adicionar cargo</button>
         </form>
@@ -163,7 +161,7 @@ const PERMISSOES_VOLUNTARIO = [
               </div>
               <label class="form-control mt-3 max-w-48">
                 <span class="label-text mb-1 text-xs">Total de vagas</span>
-                <input class="input input-bordered input-sm w-full" type="number" min="1" step="1" [value]="cargo.vagas_total" (change)="atualizarVagas(cargo.id, $event)" />
+                <input class="input input-bordered input-sm w-full" type="number" min="1" step="1" placeholder="Ex.: 10" [value]="cargo.vagas_total" (change)="atualizarVagas(cargo.id, $event)" />
               </label>
             </article>
           }
@@ -180,7 +178,7 @@ export class UsersComponent {
   readonly mensagem = signal('');
   readonly nomeCargo = signal('');
   readonly descricaoCargo = signal('');
-  readonly vagasCargo = signal(1);
+  readonly vagasCargo = signal('');
 
   readonly voluntarios = computed(() => {
     const db = this.store.db();
@@ -197,7 +195,13 @@ export class UsersComponent {
 
   readonly participantes = computed(() => {
     const db = this.store.db();
-    return db.cadastrosParticipantes.map((cadastro) => ({ cadastro, usuario: db.usuarios.find((user) => user.id === cadastro.usuario_id) }));
+    return db.usuarios
+      .filter((usuario) => this.tipoConta(usuario) === 'participante')
+      .map((usuario) => ({
+        usuario,
+        equipes: db.equipes.filter((equipe) => equipe.responsavel_usuario_id === usuario.id).length,
+        cadastrosLegados: db.cadastrosParticipantes.filter((cadastro) => cadastro.usuario_id === usuario.id).length,
+      }));
   });
 
   readonly cargos = computed(() => {
@@ -240,21 +244,16 @@ export class UsersComponent {
     this.mensagem.set(resultado.ok ? 'Proposta de parceria atualizada.' : resultado.erro ?? 'Não foi possível atualizar a proposta.');
   }
 
-  avaliarParticipante(id: number, status: 'aprovada' | 'rejeitada'): void {
-    const resultado = this.store.avaliarCadastroParticipante(id, status);
-    this.mensagem.set(resultado.ok ? 'Inscrição de participante atualizada.' : resultado.erro ?? 'Não foi possível atualizar a inscrição.');
-  }
-
   criarCargo(event: Event): void {
     event.preventDefault();
     const resultado = this.store.criarCargoVoluntario({
-      nome: this.nomeCargo(), descricao: this.descricaoCargo(), vagas_total: this.vagasCargo(),
+      nome: this.nomeCargo(), descricao: this.descricaoCargo(), vagas_total: Number(this.vagasCargo()),
     });
     this.mensagem.set(resultado.ok ? 'Cargo voluntário criado.' : resultado.erro ?? 'Não foi possível criar o cargo.');
     if (resultado.ok) {
       this.nomeCargo.set('');
       this.descricaoCargo.set('');
-      this.vagasCargo.set(1);
+      this.vagasCargo.set('');
     }
   }
 
@@ -263,20 +262,21 @@ export class UsersComponent {
     this.mensagem.set(resultado.ok ? 'Quantidade de vagas atualizada.' : resultado.erro ?? 'Não foi possível atualizar as vagas.');
   }
 
-  modalidadeNome(id: number): string {
-    return this.store.db().modalidades.find((modalidade) => modalidade.id === id)?.nome ?? 'Modalidade indisponível';
-  }
-
   rotuloStatusVoluntario(status: string): string {
     return ({ pendente: 'Aguardando análise', aprovada: 'Aprovada', rejeitada: 'Recusada' } as Record<string, string>)[status] ?? status;
   }
 
-  rotuloStatusParticipante(status: string): string {
-    return ({ pendente: 'Em análise', aprovada: 'Aprovada', rejeitada: 'Recusada' } as Record<string, string>)[status] ?? status;
-  }
-
   rotuloStatusParceria(status: string): string {
     return ({ em_analise: 'Em análise', aprovada: 'Aprovada', recusada: 'Recusada' } as Record<string, string>)[status] ?? status;
+  }
+
+  rotuloTipoApoio(tipo?: string): string {
+    return ({
+      financeiro: 'Apoio financeiro',
+      materiais: 'Materiais ou equipamentos',
+      servicos: 'Serviços ou infraestrutura',
+      outro: 'Outro tipo de apoio',
+    } as Record<string, string>)[tipo ?? 'financeiro'] ?? 'Apoio financeiro';
   }
 
   private tipoConta(usuario: Usuario): TipoConta {

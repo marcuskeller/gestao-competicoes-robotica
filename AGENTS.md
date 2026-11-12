@@ -2,11 +2,11 @@
 
 ## Escopo do produto
 
-- Este repositório implementa o **Desafio 02 — Gestão das Competições** do Hackathon ADS/UNISENAI, conforme `PLANO-MVP-GESTAO-COMPETICOES.md` e o briefing oficial em `docs/contexto/`.
+- Este repositório implementa o **Desafio 02 — Gestão das Competições** do Hackathon ADS/UNISENAI, conforme `docs/PLANO-MVP-GESTAO-COMPETICOES.md`, o regulamento/briefing em `docs/Regulamento e Briefing - Hackathon Campeonato Joinvilense de Robótica.pdf` e os dados do campeonato em `docs/Campeonato Joinvilense de Robóticca 2026.pdf`.
 - A orientação atual do produto amplia o frontend para quatro áreas: Administração, Voluntariado, Participantes/Escolas e Empresas apoiadoras. A Administração gerencia modalidades, editais, usuários, permissões e vagas voluntárias; escolas podem cadastrar equipes e integrantes; empresas podem enviar propostas de apoio.
 - O escopo de implementação atual é somente o frontend Angular. Use dados fictícios; a store local e o `localStorage` servem à demonstração e não devem ser descritos como backend, autenticação real ou persistência compartilhada.
 - Priorize uma jornada demonstrável e coerente: edição e inscrições → disputas → pontuação rastreável → classificação → homologação → publicação. Resultados só aparecem no portal público após publicação.
-- Voluntários selecionam cargos com vagas configuradas pela Administração. Participantes podem se cadastrar como pessoa física ou por uma escola com CNPJ. Empresas podem registrar valor e mensagem de apoio para análise; o protótipo não processa pagamentos.
+- Voluntários selecionam cargos com vagas configuradas pela Administração. Participantes criam uma conta como pessoa física ou escola; depois do login, criam equipes e alunos. Empresas criam uma conta e descrevem a doação/apoio em uma proposta para análise; o protótipo não processa pagamentos.
 - Não implemente gestão financeira completa, pagamentos, prestação de contas ou histórico institucional completo sem nova decisão de produto.
 
 ## Arquitetura simples (MVC adaptado ao Angular)

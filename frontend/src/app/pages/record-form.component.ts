@@ -9,8 +9,33 @@ interface Field {
   label: string;
   type?: string;
   options?: { value: string; label: string }[];
+  placeholder?: string;
 }
-const field = (key: string, label: string, type = 'text'): Field => ({ key, label, type });
+const EXEMPLOS: Record<string, string> = {
+  nome: 'Ex.: Nome do cadastro',
+  ano: 'Ex.: 2026',
+  numero: 'Ex.: 7',
+  tema: 'Ex.: Tema do campeonato',
+  local: 'Ex.: Local do evento',
+  data_inicio: 'Ex.: 09/11/2026',
+  data_fim: 'Ex.: 13/11/2026',
+  slug: 'Ex.: seguidor-de-linha',
+  descricao: 'Ex.: Descreva a modalidade ou critério.',
+  min_integrantes: 'Ex.: 2',
+  max_integrantes: 'Ex.: 4',
+  peso: 'Ex.: 3',
+  titulo: 'Ex.: Título do regulamento',
+  conteudo: 'Ex.: Descreva as regras e orientações.',
+  municipio: 'Ex.: Joinville',
+  uf: 'Ex.: SC',
+  serie: 'Ex.: 8º ano',
+};
+const field = (key: string, label: string, type = 'text'): Field => ({
+  key,
+  label,
+  type,
+  placeholder: EXEMPLOS[key],
+});
 const options = (key: string, label: string, values: string[]): Field => ({
   key,
   label,
@@ -35,7 +60,7 @@ const options = (key: string, label: string, values: string[]): Field => ({
                 [(ngModel)]="values[f.key]"
                 required
               >
-                <option value="" disabled>Selecione</option>
+                <option value="" disabled>Selecione uma opção</option>
                 @for (option of f.options; track option.value) {
                   <option [value]="option.value">{{ option.label }}</option>
                 }
@@ -46,6 +71,7 @@ const options = (key: string, label: string, values: string[]): Field => ({
                 [id]="'field-' + f.key"
                 [name]="f.key"
                 [(ngModel)]="values[f.key]"
+                [placeholder]="f.placeholder"
                 required
               ></textarea>
             } @else {
@@ -55,10 +81,14 @@ const options = (key: string, label: string, values: string[]): Field => ({
                 [name]="f.key"
                 [type]="f.type ?? 'text'"
                 [(ngModel)]="values[f.key]"
+                [placeholder]="f.placeholder"
                 [attr.min]="f.type === 'number' ? 0 : null"
                 [attr.step]="f.type === 'number' ? 'any' : null"
                 required
               />
+            }
+            @if (f.type === 'date') {
+              <span class="label-text-alt mt-1">Formato: dia/mês/ano · {{ f.placeholder }}</span>
             }
           </label>
         }

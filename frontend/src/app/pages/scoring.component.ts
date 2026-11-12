@@ -48,6 +48,7 @@ import type { Resultado } from '../core/models';
                     min="0"
                     step="any"
                     required
+                    placeholder="Ex.: 10"
                     [id]="'score-' + id + '-' + criterio.id"
                     [name]="'criterion-' + criterio.id"
                     [(ngModel)]="scores[id][criterio.id]"
@@ -63,6 +64,7 @@ import type { Resultado } from '../core/models';
                   min="0"
                   step="any"
                   required
+                  placeholder="Ex.: 0"
                   [id]="'penalty-' + id"
                   name="penalidades"
                   [(ngModel)]="penalties[id]"
@@ -72,6 +74,7 @@ import type { Resultado } from '../core/models';
                   class="textarea w-full mt-1"
                   [id]="'note-' + id"
                   name="observacao"
+                  placeholder="Ex.: A equipe saiu da pista na segunda tentativa."
                   [(ngModel)]="notes[id]"
                 ></textarea>
               </label>

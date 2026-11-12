@@ -23,7 +23,10 @@ export interface Usuario {
   email: string;
   perfil: Perfil;
   tipo_conta?: TipoConta;
+  tipo_participante?: 'pessoa_fisica' | 'escola';
   organizacao?: string;
+  cnpj?: string;
+  telefone?: string;
   permissoes?: string[];
   ativo: boolean;
 }
@@ -40,6 +43,7 @@ export interface InscricaoVoluntario {
   id: number;
   usuario_id: number;
   cargo_id: number;
+  cpf?: string;
   telefone: string;
   disponibilidade: string;
   status: 'pendente' | 'aprovada' | 'rejeitada';
@@ -80,6 +84,8 @@ export interface Parceria {
   telefone: string;
   valor_proposto: number;
   mensagem: string;
+  tipo_apoio?: 'financeiro' | 'materiais' | 'servicos' | 'outro';
+  descricao_doacao?: string;
   status: 'em_analise' | 'aprovada' | 'recusada';
 }
 
@@ -149,6 +155,8 @@ export interface Escola {
   rede: Rede;
   municipio: string;
   uf: string;
+  cnpj?: string;
+  responsavel_usuario_id?: number;
   ativo: boolean;
 }
 
@@ -157,6 +165,8 @@ export interface Equipe {
   identificador_publico: string;
   edicao_id: number;
   escola_id: number;
+  responsavel_usuario_id?: number;
+  modalidade_id?: number;
   nome: string;
   status: 'inscrita' | 'confirmada' | 'desclassificada' | 'desistente';
   observacoes: string;

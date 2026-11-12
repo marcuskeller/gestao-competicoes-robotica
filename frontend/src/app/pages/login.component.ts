@@ -11,6 +11,20 @@ const TIPOS_CONTA: { valor: TipoConta; rotulo: string }[] = [
   { valor: 'empresa', rotulo: 'Empresa apoiadora' },
 ];
 
+const TURNOS_VOLUNTARIO = [
+  '9/11 · Manhã',
+  '9/11 · Tarde',
+  '10/11 · Manhã',
+  '10/11 · Tarde',
+  '11/11 · Manhã',
+  '11/11 · Tarde',
+  '12/11 · Manhã',
+  '12/11 · Tarde',
+  '13/11 · Manhã',
+  '13/11 · Tarde',
+  '9 a 13/11 · Todos os turnos',
+];
+
 @Component({
   selector: 'app-login',
   imports: [RouterLink],
@@ -92,8 +106,7 @@ const TIPOS_CONTA: { valor: TipoConta; rotulo: string }[] = [
                 }
               } @empty {
                 <p class="rounded-lg bg-base-200 p-4 text-sm text-base-content/65">
-                  Ainda não há conta deste tipo neste navegador. Use “Cadastrar” para criar um perfil
-                  de demonstração.
+                  Ainda não há conta deste tipo. Use “Cadastrar” para criar um perfil de demonstração.
                 </p>
               }
             </div>
@@ -107,31 +120,6 @@ const TIPOS_CONTA: { valor: TipoConta; rotulo: string }[] = [
             </p>
 
             <form class="mt-4 grid gap-3" (submit)="cadastrar($event)">
-              <label class="form-control w-full">
-                <span class="label-text mb-1 font-medium">Nome completo</span>
-                <input
-                  class="input input-bordered w-full"
-                  name="nome"
-                  autocomplete="name"
-                  required
-                  [value]="nome()"
-                  (input)="nome.set(valorDo($event))"
-                />
-              </label>
-
-              <label class="form-control w-full">
-                <span class="label-text mb-1 font-medium">E-mail</span>
-                <input
-                  class="input input-bordered w-full"
-                  name="email"
-                  type="email"
-                  autocomplete="email"
-                  required
-                  [value]="email()"
-                  (input)="email.set(valorDo($event))"
-                />
-              </label>
-
               <label class="form-control w-full">
                 <span class="label-text mb-1 font-medium">Tipo de pessoa</span>
                 <select
@@ -148,15 +136,75 @@ const TIPOS_CONTA: { valor: TipoConta; rotulo: string }[] = [
                 </select>
               </label>
 
+              @if (tipoCadastro() === 'participante') {
+                <label class="form-control w-full">
+                  <span class="label-text mb-1 font-medium">Tipo de inscrição</span>
+                  <select class="select select-bordered w-full" aria-label="Tipo de inscrição" [value]="tipoParticipante()" (change)="atualizarTipoParticipante($event)">
+                    <option value="pessoa_fisica">Pessoa física</option>
+                    <option value="escola">Escola com CNPJ</option>
+                  </select>
+                </label>
+              }
+
+              <label class="form-control w-full">
+                <span class="label-text mb-1 font-medium">Nome completo</span>
+                <input
+                  class="input input-bordered w-full"
+                  name="nome"
+                  autocomplete="name"
+                  placeholder="Ex.: Nome Sobrenome"
+                  required
+                  [value]="nome()"
+                  (input)="nome.set(valorDo($event))"
+                />
+              </label>
+
+              <label class="form-control w-full">
+                <span class="label-text mb-1 font-medium">E-mail de contato</span>
+                <input
+                  class="input input-bordered w-full"
+                  name="email"
+                  type="email"
+                  autocomplete="email"
+                  placeholder="Ex.: nome@exemplo.com"
+                  required
+                  [value]="email()"
+                  (input)="email.set(valorDo($event))"
+                />
+              </label>
+
+              @if (tipoCadastro() !== 'administrador') {
+                <label class="form-control w-full">
+                  <span class="label-text mb-1 font-medium">Telefone de contato</span>
+                  <input class="input input-bordered w-full" type="tel" required autocomplete="tel" placeholder="Ex.: (00) 00000-0000" [value]="telefone()" (input)="telefone.set(valorDo($event))" />
+                </label>
+              }
+
               @if (tipoCadastro() === 'voluntario') {
+                <label class="form-control w-full">
+                  <span class="label-text mb-1 font-medium">CPF</span>
+                  <input
+                    class="input input-bordered w-full"
+                    name="cpf"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    placeholder="Ex.: 000.000.000-00"
+                    maxlength="14"
+                    required
+                    [value]="cpf()"
+                    (input)="cpf.set(valorDo($event))"
+                  />
+                </label>
                 <label class="form-control w-full">
                   <span class="label-text mb-1 font-medium">Cargo voluntário</span>
                   <select
                     class="select select-bordered w-full"
                     aria-label="Cargo voluntário"
+                    required
                     [value]="cargoVoluntarioId()"
                     (change)="cargoVoluntarioId.set(+valorDo($event))"
                   >
+                    <option value="" disabled>Selecione um cargo</option>
                     @for (cargo of cargosAbertos(); track cargo.id) {
                       <option [value]="cargo.id" [disabled]="cargo.vagas_restantes === 0">
                         {{ cargo.nome }} · {{ cargo.vagas_restantes }} vagas
@@ -170,84 +218,32 @@ const TIPOS_CONTA: { valor: TipoConta; rotulo: string }[] = [
                   }
                 </label>
                 <label class="form-control w-full">
-                  <span class="label-text mb-1 font-medium">Telefone</span>
-                  <input class="input input-bordered w-full" type="tel" required autocomplete="tel" [value]="telefone()" (input)="telefone.set(valorDo($event))" />
-                </label>
-                <label class="form-control w-full">
                   <span class="label-text mb-1 font-medium">Disponibilidade</span>
-                  <textarea class="textarea textarea-bordered w-full" rows="2" required placeholder="Dias e turnos em que pode ajudar" [value]="disponibilidade()" (input)="disponibilidade.set(valorDo($event))"></textarea>
+                  <select
+                    class="select select-bordered w-full"
+                    aria-label="Disponibilidade"
+                    required
+                    [value]="disponibilidade()"
+                    (change)="disponibilidade.set(valorDo($event))"
+                  >
+                    <option value="" disabled>Selecione um turno</option>
+                    @for (turno of turnosVoluntario; track turno) {
+                      <option [value]="turno">{{ turno }}</option>
+                    }
+                  </select>
                 </label>
-                <p class="text-xs text-base-content/60">A vaga fica pendente de confirmação da organização. Não informe dados sensíveis nesta demonstração.</p>
+                <p class="text-xs text-base-content/60">A vaga fica pendente de confirmação da organização.</p>
               }
 
               @if (tipoCadastro() === 'participante') {
-                <label class="form-control w-full">
-                  <span class="label-text mb-1 font-medium">Tipo de inscrição</span>
-                  <select class="select select-bordered w-full" aria-label="Tipo de inscrição" [value]="tipoParticipante()" (change)="atualizarTipoParticipante($event)">
-                    <option value="pessoa_fisica">Pessoa física</option>
-                    <option value="escola">Escola com CNPJ</option>
-                  </select>
-                </label>
-
-                @if (tipoParticipante() === 'pessoa_fisica') {
-                  <label class="form-control w-full">
-                    <span class="label-text mb-1 font-medium">Escola</span>
-                    <input class="input input-bordered w-full" required [value]="nomeEscola()" (input)="nomeEscola.set(valorDo($event))" />
-                  </label>
-                  <label class="form-control w-full">
-                    <span class="label-text mb-1 font-medium">Ano escolar</span>
-                    <input class="input input-bordered w-full" required placeholder="Ex.: 8º ano" [value]="serie()" (input)="serie.set(valorDo($event))" />
-                  </label>
-                  <label class="form-control w-full">
-                    <span class="label-text mb-1 font-medium">Responsável</span>
-                    <input class="input input-bordered w-full" required autocomplete="name" [value]="responsavel()" (input)="responsavel.set(valorDo($event))" />
-                  </label>
-                  <label class="form-control w-full">
-                    <span class="label-text mb-1 font-medium">Telefone do responsável</span>
-                    <input class="input input-bordered w-full" type="tel" required autocomplete="tel" [value]="telefoneResponsavel()" (input)="telefoneResponsavel.set(valorDo($event))" />
-                  </label>
-                  <label class="form-control w-full">
-                    <span class="label-text mb-1 font-medium">Modalidade</span>
-                    <select class="select select-bordered w-full" aria-label="Modalidade" [value]="modalidadeId()" (change)="modalidadeId.set(+valorDo($event))">
-                      @for (modalidade of modalidades(); track modalidade.id) {
-                        <option [value]="modalidade.id">{{ modalidade.nome }}</option>
-                      }
-                    </select>
-                  </label>
-                  <label class="form-control w-full">
-                    <span class="label-text mb-1 font-medium">Equipe (se já tiver)</span>
-                    <input class="input input-bordered w-full" [value]="equipeNome()" (input)="equipeNome.set(valorDo($event))" />
-                  </label>
-                  <p class="text-xs text-base-content/60">Para menores de idade, o cadastro deve ser feito com ciência do responsável. Use somente dados fictícios na demonstração.</p>
-                } @else {
+                @if (tipoParticipante() === 'escola') {
                   <label class="form-control w-full">
                     <span class="label-text mb-1 font-medium">Nome da escola</span>
-                    <input class="input input-bordered w-full" required autocomplete="organization" [value]="organizacao()" (input)="organizacao.set(valorDo($event))" />
+                    <input class="input input-bordered w-full" required autocomplete="organization" placeholder="Ex.: Nome da escola" [value]="organizacao()" (input)="organizacao.set(valorDo($event))" />
                   </label>
                   <label class="form-control w-full">
                     <span class="label-text mb-1 font-medium">CNPJ da escola</span>
-                    <input class="input input-bordered w-full" inputmode="numeric" required minlength="14" maxlength="18" placeholder="00.000.000/0000-00" [value]="cnpj()" (input)="cnpj.set(valorDo($event))" />
-                  </label>
-                  <label class="form-control w-full">
-                    <span class="label-text mb-1 font-medium">Telefone da escola</span>
-                    <input class="input input-bordered w-full" type="tel" required [value]="telefone()" (input)="telefone.set(valorDo($event))" />
-                  </label>
-                  <label class="form-control w-full">
-                    <span class="label-text mb-1 font-medium">Nome da equipe</span>
-                    <input class="input input-bordered w-full" required [value]="nomeEquipe()" (input)="nomeEquipe.set(valorDo($event))" />
-                  </label>
-                  <label class="form-control w-full">
-                    <span class="label-text mb-1 font-medium">Modalidade</span>
-                    <select class="select select-bordered w-full" aria-label="Modalidade" [value]="modalidadeId()" (change)="modalidadeId.set(+valorDo($event))">
-                      @for (modalidade of modalidades(); track modalidade.id) {
-                        <option [value]="modalidade.id">{{ modalidade.nome }} ({{ modalidade.min_integrantes }}–{{ modalidade.max_integrantes }} integrantes)</option>
-                      }
-                    </select>
-                  </label>
-                  <label class="form-control w-full">
-                    <span class="label-text mb-1 font-medium">Integrantes</span>
-                    <textarea class="textarea textarea-bordered w-full" rows="4" required placeholder="Um por linha: Nome do estudante | Ano escolar" [value]="alunosTexto()" (input)="alunosTexto.set(valorDo($event))"></textarea>
-                    <span class="label-text-alt mt-1">A quantidade deve respeitar os limites da modalidade.</span>
+                    <input class="input input-bordered w-full" inputmode="numeric" required minlength="14" maxlength="18" placeholder="Ex.: 00.000.000/0000-00" [value]="cnpj()" (input)="cnpj.set(valorDo($event))" />
                   </label>
                 }
               }
@@ -259,6 +255,7 @@ const TIPOS_CONTA: { valor: TipoConta; rotulo: string }[] = [
                     class="input input-bordered w-full"
                     name="organizacao"
                     autocomplete="organization"
+                    placeholder="Ex.: Razão social da empresa"
                     required
                     [value]="organizacao()"
                     (input)="organizacao.set(valorDo($event))"
@@ -266,21 +263,8 @@ const TIPOS_CONTA: { valor: TipoConta; rotulo: string }[] = [
                 </label>
                 <label class="form-control w-full">
                   <span class="label-text mb-1 font-medium">CNPJ</span>
-                  <input class="input input-bordered w-full" inputmode="numeric" required minlength="14" maxlength="18" placeholder="00.000.000/0000-00" [value]="cnpj()" (input)="cnpj.set(valorDo($event))" />
+                  <input class="input input-bordered w-full" inputmode="numeric" required minlength="14" maxlength="18" placeholder="Ex.: 00.000.000/0000-00" [value]="cnpj()" (input)="cnpj.set(valorDo($event))" />
                 </label>
-                <label class="form-control w-full">
-                  <span class="label-text mb-1 font-medium">Telefone de contato</span>
-                  <input class="input input-bordered w-full" type="tel" required autocomplete="tel" [value]="telefone()" (input)="telefone.set(valorDo($event))" />
-                </label>
-                <label class="form-control w-full">
-                  <span class="label-text mb-1 font-medium">Valor de apoio proposto (R$)</span>
-                  <input class="input input-bordered w-full" type="number" min="1" step="0.01" required [value]="valorProposto()" (input)="atualizarValorProposto($event)" />
-                </label>
-                <label class="form-control w-full">
-                  <span class="label-text mb-1 font-medium">Mensagem sobre o apoio</span>
-                  <textarea class="textarea textarea-bordered w-full" rows="3" placeholder="Ex.: apoio para kits ou materiais da arena" [value]="mensagem()" (input)="mensagem.set(valorDo($event))"></textarea>
-                </label>
-                <p class="text-xs text-base-content/60">O valor é uma proposta de apoio para demonstração; não há cobrança nem pagamento online.</p>
               }
 
               @if (tipoCadastro() === 'administrador') {
@@ -296,10 +280,6 @@ const TIPOS_CONTA: { valor: TipoConta; rotulo: string }[] = [
 
               <button class="btn btn-primary mt-1 w-full" type="submit">Criar perfil</button>
             </form>
-            <p class="mt-3 text-xs leading-5 text-base-content/55">
-              Os perfis e dados são salvos somente neste navegador. Não informe dados reais ou
-              sensíveis; esta demonstração não usa senha nem autenticação de servidor.
-            </p>
           </section>
         }
 
@@ -315,27 +295,19 @@ export class LoginComponent {
   private readonly router = inject(Router);
   readonly perfis = PERFIS;
   readonly tiposConta = TIPOS_CONTA;
+  readonly turnosVoluntario = TURNOS_VOLUNTARIO;
   readonly modo = signal<'entrar' | 'cadastrar'>('entrar');
   readonly tipoLogin = signal<TipoConta>('administrador');
   readonly tipoCadastro = signal<TipoConta>('voluntario');
   readonly tipoParticipante = signal<'pessoa_fisica' | 'escola'>('pessoa_fisica');
-  readonly cargoVoluntarioId = signal(1);
+  readonly cargoVoluntarioId = signal<number | ''>('');
   readonly nome = signal('');
   readonly email = signal('');
+  readonly cpf = signal('');
   readonly organizacao = signal('');
   readonly telefone = signal('');
   readonly disponibilidade = signal('');
-  readonly nomeEscola = signal('');
-  readonly serie = signal('');
-  readonly responsavel = signal('');
-  readonly telefoneResponsavel = signal('');
-  readonly modalidadeId = signal(1);
-  readonly equipeNome = signal('');
-  readonly nomeEquipe = signal('');
-  readonly alunosTexto = signal('');
   readonly cnpj = signal('');
-  readonly valorProposto = signal(1000);
-  readonly mensagem = signal('');
   readonly erro = signal('');
 
   readonly cargosAbertos = computed(() => {
@@ -349,10 +321,8 @@ export class LoginComponent {
   });
 
   readonly cargoSelecionado = computed(() =>
-    this.cargosAbertos().find((cargo) => cargo.id === this.cargoVoluntarioId()),
+    this.cargosAbertos().find((cargo) => cargo.id === Number(this.cargoVoluntarioId())),
   );
-
-  readonly modalidades = computed(() => this.store.db().modalidades.filter((modalidade) => modalidade.ativo));
 
   readonly contasFiltradas = computed(() =>
     this.store.db().usuarios.filter((usuario) => this.tipoConta(usuario) === this.tipoLogin()),
@@ -369,10 +339,6 @@ export class LoginComponent {
 
   atualizarTipoParticipante(event: Event): void {
     this.tipoParticipante.set(this.valorDo(event) as 'pessoa_fisica' | 'escola');
-  }
-
-  atualizarValorProposto(event: Event): void {
-    this.valorProposto.set(Number(this.valorDo(event)));
   }
 
   valorDo(event: Event): string {
@@ -402,25 +368,13 @@ export class LoginComponent {
       nome: this.nome(),
       email: this.email(),
       tipo_conta: this.tipoCadastro(),
+      cpf: this.cpf(),
       organizacao: this.organizacao(),
       telefone: this.telefone(),
       disponibilidade: this.disponibilidade(),
-      cargo_voluntario_id: this.cargoVoluntarioId(),
+      cargo_voluntario_id: Number(this.cargoVoluntarioId()),
       tipo_participante: this.tipoParticipante(),
-      nome_escola: this.nomeEscola(),
-      serie: this.serie(),
-      responsavel: this.responsavel(),
-      telefone_responsavel: this.telefoneResponsavel(),
-      modalidade_id: this.modalidadeId(),
-      equipe_nome: this.equipeNome(),
-      nome_equipe: this.nomeEquipe(),
-      alunos: this.alunosTexto().split(/\r?\n/).map((linha) => {
-        const [nome, serie] = linha.split('|');
-        return { nome: nome?.trim() ?? '', serie: serie?.trim() ?? '' };
-      }).filter((aluno) => aluno.nome && aluno.serie),
       cnpj: this.cnpj(),
-      valor_proposto: this.valorProposto(),
-      mensagem: this.mensagem(),
     });
     if (!resultado.ok) {
       this.erro.set(resultado.erro ?? 'Não foi possível criar o perfil.');

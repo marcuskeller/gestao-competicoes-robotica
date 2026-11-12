@@ -71,7 +71,7 @@ test('cria contas de administração, voluntariado e empresa e permite entrar pe
   await page.getByRole('button', { name: 'Cadastrar' }).click();
 
   await page.getByLabel('Nome completo').fill('Ana Administradora');
-  await page.getByLabel('E-mail').fill('ana.admin@demo.test');
+  await page.getByLabel('E-mail de contato').fill('ana.admin@demo.test');
   await page.getByLabel('Tipo de pessoa').selectOption('administrador');
   await page.getByRole('button', { name: 'Criar perfil' }).click();
   await expect(page.getByRole('heading', { name: 'Visão geral' })).toBeVisible();
@@ -81,76 +81,97 @@ test('cria contas de administração, voluntariado e empresa e permite entrar pe
 
   await page.getByRole('button', { name: 'Cadastrar' }).click();
   await page.getByLabel('Nome completo').fill('Bruno Voluntário');
-  await page.getByLabel('E-mail').fill('bruno.voluntario@demo.test');
+  await page.getByLabel('E-mail de contato').fill('bruno.voluntario@demo.test');
+  await page.getByLabel('CPF').fill('529.982.247-25');
   await page.getByLabel('Tipo de pessoa').selectOption('voluntario');
   await page.getByLabel('Cargo voluntário').selectOption('2');
-  await page.getByLabel('Telefone').fill('(47) 90000-1000');
-  await page.getByLabel('Disponibilidade').fill('11 e 12 de novembro, manhã');
+  await page.getByLabel('Telefone de contato').fill('(47) 90000-1000');
+  await page.getByLabel('Disponibilidade').selectOption({ label: '11/11 · Manhã' });
   await page.getByRole('button', { name: 'Criar perfil' }).click();
-  expect((await database(page)).usuarios.find((user) => user.email === 'bruno.voluntario@demo.test'))
-    .toMatchObject({ tipo_conta: 'voluntario', perfil: 'voluntario' });
+  const volunteerDb = await database(page);
+  const volunteer = volunteerDb.usuarios.find((user) => user.email === 'bruno.voluntario@demo.test');
+  expect(volunteer).toMatchObject({ tipo_conta: 'voluntario', perfil: 'voluntario' });
+  expect(volunteerDb.inscricoesVoluntarios.find((item) => item.usuario_id === volunteer?.id)?.cpf)
+    .toBe('52998224725');
   await page.getByRole('button', { name: 'Sair' }).click();
 
   await page.getByRole('button', { name: 'Cadastrar' }).click();
   await page.getByLabel('Nome completo').fill('Carla Parceira');
-  await page.getByLabel('E-mail').fill('carla@empresa.demo');
+  await page.getByLabel('E-mail de contato').fill('carla@empresa.demo');
   await page.getByLabel('Tipo de pessoa').selectOption('empresa');
   await page.getByLabel('Nome da empresa').fill('Robôs Joinville');
   await page.getByLabel('CNPJ').fill('33444555000104');
   await page.getByLabel('Telefone de contato').fill('(47) 90000-2000');
-  await page.getByLabel('Valor de apoio proposto (R$)').fill('2500');
   await page.getByRole('button', { name: 'Criar perfil' }).click();
   await expect(page.getByRole('alert')).toContainText('CNPJ válido');
   await page.getByLabel('CNPJ').fill('33445555000104');
   await page.getByRole('button', { name: 'Criar perfil' }).click();
   await expect(page.getByRole('heading', { name: 'Área da empresa apoiadora' })).toBeVisible();
+  await page.getByLabel('Valor que pretende doar (R$)').fill('2500');
+  await page.getByLabel('Descreva a doação').fill('Doação fictícia de materiais para a arena.');
+  await page.getByRole('button', { name: 'Enviar proposta à organização' }).click();
+  await expect(page.getByRole('status')).toContainText('Proposta enviada para análise');
   expect((await database(page)).usuarios.find((user) => user.email === 'carla@empresa.demo'))
     .toMatchObject({ tipo_conta: 'empresa', perfil: 'empresa', organizacao: 'Robôs Joinville' });
+  const companyDb = await database(page);
+  const companyUser = companyDb.usuarios.find((user) => user.email === 'carla@empresa.demo');
+  expect(companyDb.parcerias.find((item) => item.usuario_id === companyUser?.id))
+    .toMatchObject({ valor_proposto: 2500, tipo_apoio: 'financeiro' });
   await page.getByRole('button', { name: 'Sair' }).click();
   await page.getByLabel('Tipo de pessoa').selectOption('empresa');
   await page.getByRole('button', { name: /Robôs Joinville/ }).click();
   await expect(page.getByRole('heading', { name: 'Área da empresa apoiadora' })).toBeVisible();
 });
 
-test('participante pode se inscrever como pessoa física ou por escola com CNPJ', async ({ page }) => {
+test('participante cria a conta e cadastra equipes e alunos depois do login', async ({ page }) => {
   await page.goto('/login');
   await page.getByRole('button', { name: 'Cadastrar' }).click();
   await page.getByLabel('Nome completo').fill('Estudante Teste');
-  await page.getByLabel('E-mail').fill('estudante@demo.test');
+  await page.getByLabel('E-mail de contato').fill('estudante@demo.test');
   await page.getByLabel('Tipo de pessoa').selectOption('participante');
-  await page.getByLabel('Escola', { exact: true }).fill('Escola de Demonstração');
-  await page.getByLabel('Ano escolar').fill('8º ano');
-  await page.getByLabel('Responsável', { exact: true }).fill('Responsável de Teste');
-  await page.getByLabel('Telefone do responsável').fill('(47) 90000-3000');
-  await page.getByLabel('Modalidade', { exact: true }).selectOption('1');
+  await page.getByLabel('Telefone de contato').fill('(47) 90000-3000');
   await page.getByRole('button', { name: 'Criar perfil' }).click();
-  await expect(page.getByRole('heading', { name: 'Minha inscrição' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Minhas equipes' })).toBeVisible();
   const pessoaDb = await database(page);
   const pessoaId = pessoaDb.usuarios.find((user) => user.email === 'estudante@demo.test')!.id;
-  expect(pessoaDb.cadastrosParticipantes.find((item) => item.usuario_id === pessoaId)).toMatchObject({
-    tipo: 'pessoa_fisica', nome_escola: 'Escola de Demonstração', serie: '8º ano',
-  });
+  expect(pessoaDb.usuarios.find((user) => user.id === pessoaId)).toMatchObject({ tipo_participante: 'pessoa_fisica' });
+  expect(pessoaDb.cadastrosParticipantes.some((item) => item.usuario_id === pessoaId)).toBe(false);
+  await page.getByLabel('Escola da equipe').fill('Escola de Demonstração');
+  await page.getByLabel('Rede de ensino').selectOption('municipal');
+  await page.getByLabel('UF').fill('SC');
+  await page.getByLabel('Município').fill('Joinville');
+  await page.getByLabel('Nome da equipe').fill('Equipe de Demonstração');
+  await page.getByLabel('Modalidade').selectOption('1');
+  await page.getByRole('textbox', { name: /Informe de 2 a 4/ }).fill('Estudante Um | 8º ano\nEstudante Dois | 9º ano');
+  await page.getByRole('button', { name: 'Salvar equipe e alunos' }).click();
+  await expect(page.getByText('Equipe de Demonstração')).toBeVisible();
+  expect((await database(page)).equipes.some((item) => item.responsavel_usuario_id === pessoaId)).toBe(true);
   await page.getByRole('button', { name: 'Sair' }).click();
 
   await page.getByRole('button', { name: 'Cadastrar' }).click();
   await page.getByLabel('Nome completo').fill('Diretora Teste');
-  await page.getByLabel('E-mail').fill('escola@demo.test');
+  await page.getByLabel('E-mail de contato').fill('escola@demo.test');
   await page.getByLabel('Tipo de pessoa').selectOption('participante');
   await page.getByLabel('Tipo de inscrição').selectOption('escola');
   await page.getByLabel('Nome da escola').fill('Escola de Demonstração CNPJ');
   await page.getByLabel('CNPJ da escola').fill('44556666000104');
-  await page.getByLabel('Telefone da escola').fill('(47) 90000-4000');
-  await page.getByLabel('Nome da equipe').fill('Equipe CNPJ Demo');
-  await page.getByLabel('Modalidade', { exact: true }).selectOption('1');
-  await page.getByLabel('Integrantes').fill('Estudante Um | 6º ano\nEstudante Dois | 7º ano');
+  await page.getByLabel('Telefone de contato').fill('(47) 90000-4000');
   await page.getByRole('button', { name: 'Criar perfil' }).click();
-  await expect(page.getByRole('heading', { name: 'Minha inscrição' })).toBeVisible();
-  await expect(page.getByText('Estudante Um')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Minhas equipes' })).toBeVisible();
   const escolaDb = await database(page);
   const escolaUserId = escolaDb.usuarios.find((user) => user.email === 'escola@demo.test')!.id;
-  expect(escolaDb.cadastrosParticipantes.find((item) => item.usuario_id === escolaUserId)).toMatchObject({
-    tipo: 'escola', cnpj: '44556666000104', nome_equipe: 'Equipe CNPJ Demo',
+  expect(escolaDb.usuarios.find((user) => user.id === escolaUserId)).toMatchObject({
+    tipo_participante: 'escola', cnpj: '44556666000104', organizacao: 'Escola de Demonstração CNPJ',
   });
+  await page.getByLabel('Rede de ensino').selectOption('municipal');
+  await page.getByLabel('UF').fill('SC');
+  await page.getByLabel('Município').fill('Joinville');
+  await page.getByLabel('Nome da equipe').fill('Equipe CNPJ Demo');
+  await page.getByLabel('Modalidade').selectOption('1');
+  await page.getByRole('textbox', { name: /Informe de 2 a 4/ }).fill('Estudante Um | 6º ano\nEstudante Dois | 7º ano');
+  await page.getByRole('button', { name: 'Salvar equipe e alunos' }).click();
+  await expect(page.getByText('Estudante Um')).toBeVisible();
+  expect((await database(page)).equipes.some((item) => item.responsavel_usuario_id === escolaUserId)).toBe(true);
 });
 
 test('administra usuários por categoria, cargos, vagas e permissões', async ({ page }) => {
@@ -176,7 +197,8 @@ test('administra usuários por categoria, cargos, vagas e permissões', async ({
   await page.getByRole('button', { name: 'Parcerias' }).click();
   await expect(page.getByText('Tecnologia Joinville Demo')).toBeVisible();
   await page.getByRole('button', { name: 'Participantes' }).click();
-  await expect(page.getByRole('heading', { name: 'Escola Municipal de Robótica Demo', exact: true })).toBeVisible();
+  const escolaParceira = page.locator('article').filter({ hasText: 'Escola / CNPJ' });
+  await expect(escolaParceira.getByRole('heading', { name: 'Escola Municipal de Robótica Demo' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Cargos e vagas' }).click();
   await page.getByLabel('Nome do cargo').fill('Apoio de demonstração');

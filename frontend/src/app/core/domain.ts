@@ -18,6 +18,24 @@ export const CAMPOS_DESEMPATE: Record<string, string> = {
   tempo: 'Tempo',
 };
 
+export function cpfValido(valor: string): boolean {
+  const cpf = valor.replace(/\D/g, '');
+  if (!/^\d{11}$/.test(cpf) || /^(\d)\1{10}$/.test(cpf)) return false;
+
+  const calcularDigito = (base: string, pesoInicial: number): string => {
+    const soma = [...base].reduce(
+      (total, digito, indice) => total + Number(digito) * (pesoInicial - indice),
+      0,
+    );
+    const resto = (soma * 10) % 11;
+    return String(resto === 10 ? 0 : resto);
+  };
+
+  const primeiro = calcularDigito(cpf.slice(0, 9), 10);
+  const segundo = calcularDigito(cpf.slice(0, 9) + primeiro, 11);
+  return cpf.endsWith(primeiro + segundo);
+}
+
 export function cnpjValido(valor: string): boolean {
   const cnpj = valor.replace(/\D/g, '');
   if (!/^\d{14}$/.test(cnpj) || /^([\d])\1{13}$/.test(cnpj)) return false;

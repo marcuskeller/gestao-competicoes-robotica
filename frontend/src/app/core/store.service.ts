@@ -1,5 +1,5 @@
 import { computed, effect, Injectable, signal } from '@angular/core';
-import { cnpjValido, montarSnapshot, pontosPorCriterios, publicacaoVigente } from './domain';
+import { cnpjValido, cpfValido, montarSnapshot, pontosPorCriterios, publicacaoVigente } from './domain';
 import type {
   CriterioPontuacao,
   Database,
@@ -9,6 +9,7 @@ import type {
   Escola,
   Equipe,
   Inscricao,
+  Parceria,
   Perfil,
   Participante,
   Resultado,
@@ -92,6 +93,7 @@ export class StoreService {
     nome: string;
     email: string;
     tipo_conta: TipoConta;
+    cpf?: string;
     organizacao?: string;
     telefone?: string;
     disponibilidade?: string;
@@ -113,6 +115,7 @@ export class StoreService {
     const email = dados.email.trim().toLowerCase();
     const organizacao = dados.organizacao?.trim() ?? '';
     const telefone = dados.telefone?.trim() ?? '';
+    const cpf = dados.cpf?.replace(/\D/g, '') ?? '';
     const cnpj = dados.cnpj?.replace(/\D/g, '') ?? '';
 
     if (!nome) return { ok: false, erro: 'Informe seu nome.' };
@@ -128,6 +131,10 @@ export class StoreService {
     let perfil: Perfil;
     if (dados.tipo_conta === 'administrador') perfil = 'administrador';
     else if (dados.tipo_conta === 'voluntario') {
+      if (!cpfValido(cpf)) return { ok: false, erro: 'Informe um CPF válido para o voluntário.' };
+      if ((db.inscricoesVoluntarios ?? []).some((inscricao) => inscricao.cpf === cpf)) {
+        return { ok: false, erro: 'Já existe uma inscrição voluntária com este CPF.' };
+      }
       const cargo = db.cargosVoluntarios?.find(
         (item) => item.id === Number(dados.cargo_voluntario_id) && item.ativo,
       );
@@ -142,34 +149,9 @@ export class StoreService {
       }
       perfil = 'voluntario';
     } else if (dados.tipo_conta === 'participante') {
-      const modalidade = db.modalidades.find((item) => item.id === Number(dados.modalidade_id));
-      if (!modalidade) return { ok: false, erro: 'Selecione uma modalidade.' };
-      if (dados.tipo_participante === 'pessoa_fisica') {
-        if (
-          !dados.nome_escola?.trim() ||
-          !dados.serie?.trim() ||
-          !dados.responsavel?.trim() ||
-          !dados.telefone_responsavel?.trim()
-        ) {
-          return { ok: false, erro: 'Informe escola, série e contato do responsável.' };
-        }
-      } else {
-        if (!cnpjValido(cnpj)) return { ok: false, erro: 'Informe um CNPJ válido para a escola.' };
-        if (!organizacao || !telefone || !dados.nome_equipe?.trim()) {
-          return { ok: false, erro: 'Informe CNPJ, escola, telefone e nome da equipe.' };
-        }
-        if ((dados.alunos?.length ?? 0) < modalidade.min_integrantes) {
-          return {
-            ok: false,
-            erro: `Esta modalidade exige pelo menos ${modalidade.min_integrantes} integrantes.`,
-          };
-        }
-        if ((dados.alunos?.length ?? 0) > modalidade.max_integrantes) {
-          return {
-            ok: false,
-            erro: `Esta modalidade permite até ${modalidade.max_integrantes} integrantes.`,
-          };
-        }
+      if (!telefone) return { ok: false, erro: 'Informe um telefone de contato.' };
+      if (dados.tipo_participante === 'escola' && (!organizacao || !cnpjValido(cnpj))) {
+        return { ok: false, erro: 'Informe o nome e um CNPJ válido da escola.' };
       }
       perfil = 'participante';
     } else {
@@ -179,14 +161,12 @@ export class StoreService {
       if (!cnpjValido(cnpj)) {
         return { ok: false, erro: 'Informe um CNPJ válido.' };
       }
-      if (Number(dados.valor_proposto) <= 0 || !Number.isFinite(Number(dados.valor_proposto))) {
-        return { ok: false, erro: 'Informe um valor de apoio maior que zero.' };
-      }
       perfil = 'empresa';
     }
 
     if (dados.tipo_conta === 'empresa' || (dados.tipo_conta === 'participante' && dados.tipo_participante === 'escola')) {
-      const documentoDuplicado = (db.parcerias ?? []).some((item) => item.cnpj === cnpj) ||
+      const documentoDuplicado = db.usuarios.some((item) => item.cnpj === cnpj) ||
+        (db.parcerias ?? []).some((item) => item.cnpj === cnpj) ||
         (db.cadastrosParticipantes ?? []).some((item) => item.tipo === 'escola' && item.cnpj === cnpj);
       if (documentoDuplicado) return { ok: false, erro: 'Já existe um cadastro com este CNPJ.' };
     }
@@ -197,7 +177,12 @@ export class StoreService {
       email,
       perfil,
       tipo_conta: dados.tipo_conta,
+      ...(dados.tipo_conta === 'participante'
+        ? { tipo_participante: dados.tipo_participante ?? 'pessoa_fisica' }
+        : {}),
       ...(organizacao ? { organizacao } : {}),
+      ...(cnpj ? { cnpj } : {}),
+      ...(telefone ? { telefone } : {}),
       ativo: true,
     };
     const usuario_id = usuario.id;
@@ -215,40 +200,10 @@ export class StoreService {
             id: this.proximoId(db.inscricoesVoluntarios ?? []),
             usuario_id,
             cargo_id: Number(dados.cargo_voluntario_id),
+            cpf,
             telefone,
             disponibilidade: dados.disponibilidade!.trim(),
             status: 'pendente' as const,
-          },
-        ],
-      };
-    }
-    if (dados.tipo_conta === 'participante') {
-      const inscricao = dados.tipo_participante === 'escola'
-        ? {
-            id: this.proximoId(db.cadastrosParticipantes ?? []), usuario_id,
-            tipo: 'escola' as const, cnpj, nome_escola: organizacao, telefone,
-            nome_equipe: dados.nome_equipe!.trim(), modalidade_id: Number(dados.modalidade_id),
-            alunos: dados.alunos ?? [], status: 'pendente' as const,
-          }
-        : {
-            id: this.proximoId(db.cadastrosParticipantes ?? []), usuario_id,
-            tipo: 'pessoa_fisica' as const, nome_escola: dados.nome_escola!.trim(),
-            serie: dados.serie!.trim(), responsavel: dados.responsavel!.trim(),
-            telefone_responsavel: dados.telefone_responsavel!.trim(),
-            modalidade_id: Number(dados.modalidade_id), equipe_nome: dados.equipe_nome?.trim() ?? '',
-            status: 'pendente' as const,
-          };
-      proximo = { ...proximo, cadastrosParticipantes: [...(db.cadastrosParticipantes ?? []), inscricao] };
-    }
-    if (dados.tipo_conta === 'empresa') {
-      proximo = {
-        ...proximo,
-        parcerias: [
-          ...(db.parcerias ?? []),
-          {
-            id: this.proximoId(db.parcerias ?? []), usuario_id, cnpj, telefone,
-            valor_proposto: Number(dados.valor_proposto), mensagem: dados.mensagem?.trim() ?? '',
-            status: 'em_analise' as const,
           },
         ],
       };
@@ -364,6 +319,40 @@ export class StoreService {
       campo: 'status', anterior: cadastro.status, novo: status,
     }));
     return { ok: true, id };
+  }
+
+  criarPropostaApoio(dados: {
+    tipo_apoio: NonNullable<Parceria['tipo_apoio']>;
+    descricao_doacao: string;
+    valor_proposto?: number;
+  }): Resultado {
+    const usuario = this.usuario();
+    if (!usuario || usuario.tipo_conta !== 'empresa') {
+      return { ok: false, erro: AVISO_SEM_PERMISSAO };
+    }
+    const descricao = dados.descricao_doacao.trim();
+    const valor = Number(dados.valor_proposto ?? 0);
+    if (!descricao) return { ok: false, erro: 'Descreva o que a empresa pretende doar.' };
+    if (dados.tipo_apoio === 'financeiro' && (!Number.isFinite(valor) || valor <= 0)) {
+      return { ok: false, erro: 'Informe o valor do apoio financeiro.' };
+    }
+    const db = this._db();
+    const proposta: Parceria = {
+      id: this.proximoId(db.parcerias),
+      usuario_id: usuario.id,
+      cnpj: usuario.cnpj ?? '',
+      telefone: usuario.telefone ?? '',
+      tipo_apoio: dados.tipo_apoio,
+      descricao_doacao: descricao,
+      valor_proposto: dados.tipo_apoio === 'financeiro' ? valor : 0,
+      mensagem: descricao,
+      status: 'em_analise',
+    };
+    this._db.set(this.comLog(
+      { ...db, parcerias: [...db.parcerias, proposta] },
+      { tabela: 'parcerias', registro_id: proposta.id, acao: 'proposta_apoio', novo: proposta },
+    ));
+    return { ok: true, id: proposta.id };
   }
 
   avaliarParceria(id: number, status: 'aprovada' | 'recusada'): Resultado {
@@ -767,9 +756,111 @@ export class StoreService {
     return { ok: true, id };
   }
 
-  submeterInscricao(equipeId: number, modalidadeId: number): Resultado {
-    if (!this.podeFazer('equipe.editar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
+  criarEquipeParticipante(dados: {
+    nome: string;
+    modalidade_id: number;
+    nome_escola?: string;
+    rede: Escola['rede'];
+    municipio: string;
+    uf: string;
+    alunos: { nome: string; serie: string }[];
+  }): Resultado {
+    const usuario = this.usuario();
+    if (!usuario || usuario.tipo_conta !== 'participante') {
+      return { ok: false, erro: AVISO_SEM_PERMISSAO };
+    }
+    const nomeEquipe = dados.nome.trim();
+    const modalidade = this._db().modalidades.find(
+      (item) => item.id === Number(dados.modalidade_id) && item.ativo,
+    );
+    if (!nomeEquipe || !modalidade) return { ok: false, erro: 'Informe equipe e modalidade.' };
+
+    const alunos = dados.alunos
+      .map((aluno) => ({ nome: aluno.nome.trim(), serie: aluno.serie.trim() }))
+      .filter((aluno) => aluno.nome && aluno.serie);
+    if (alunos.length < modalidade.min_integrantes || alunos.length > modalidade.max_integrantes) {
+      return {
+        ok: false,
+        erro: `A modalidade permite de ${modalidade.min_integrantes} a ${modalidade.max_integrantes} integrantes.`,
+      };
+    }
+
     const db = this._db();
+    const nomeEscola = usuario.tipo_participante === 'escola'
+      ? usuario.organizacao?.trim() ?? ''
+      : dados.nome_escola?.trim() ?? '';
+    if (!nomeEscola || !dados.municipio.trim() || !/^[A-Za-z]{2}$/.test(dados.uf.trim())) {
+      return { ok: false, erro: 'Informe escola, município e UF para cadastrar a equipe.' };
+    }
+
+    let escola = db.escolas.find((item) =>
+      usuario.tipo_participante === 'escola' && usuario.cnpj
+        ? item.cnpj === usuario.cnpj
+        : item.responsavel_usuario_id === usuario.id && item.nome.toLowerCase() === nomeEscola.toLowerCase(),
+    );
+    let escolas = db.escolas;
+    if (!escola) {
+      escola = {
+        id: this.proximoId(db.escolas),
+        identificador_publico: crypto.randomUUID(),
+        nome: nomeEscola,
+        rede: dados.rede,
+        municipio: dados.municipio.trim(),
+        uf: dados.uf.trim().toUpperCase(),
+        ...(usuario.cnpj ? { cnpj: usuario.cnpj } : {}),
+        responsavel_usuario_id: usuario.id,
+        ativo: true,
+      };
+      escolas = [...db.escolas, escola];
+    }
+
+    const equipe: Equipe = {
+      id: this.proximoId(db.equipes),
+      identificador_publico: crypto.randomUUID(),
+      edicao_id: modalidade.edicao_id,
+      escola_id: escola.id,
+      responsavel_usuario_id: usuario.id,
+      modalidade_id: modalidade.id,
+      nome: nomeEquipe,
+      status: 'inscrita',
+      observacoes: '',
+    };
+    const primeiroParticipanteId = this.proximoId(db.participantes);
+    const novosParticipantes = alunos.map((aluno, index) => ({
+      id: primeiroParticipanteId + index,
+      equipe_id: equipe.id,
+      nome: aluno.nome,
+      papel: index === 0 ? 'capitao' as const : 'integrante' as const,
+      serie: aluno.serie,
+    }));
+    const proximo = {
+      ...db,
+      escolas,
+      equipes: [...db.equipes, equipe],
+      participantes: [...db.participantes, ...novosParticipantes],
+    };
+    this._db.set(this.comLog(proximo, {
+      tabela: 'equipes', registro_id: equipe.id, acao: 'pre_cadastro_participante',
+      novo: { nome: equipe.nome, escola: escola.nome, participantes: alunos.length },
+    }));
+
+    const edicao = db.edicoes.find((item) => item.id === modalidade.edicao_id);
+    const inscricao = edicao?.status === 'inscricoes'
+      ? this.submeterInscricao(equipe.id, modalidade.id)
+      : null;
+    if (inscricao && !inscricao.ok) return inscricao;
+    return { ok: true, id: equipe.id };
+  }
+
+  submeterInscricao(equipeId: number, modalidadeId: number): Resultado {
+    const db = this._db();
+    const usuario = this.usuario();
+    const responsavelDaEquipe = usuario?.tipo_conta === 'participante' && db.equipes.some(
+      (equipe) => equipe.id === equipeId && equipe.responsavel_usuario_id === usuario.id,
+    );
+    if (!this.podeFazer('equipe.editar') && !responsavelDaEquipe) {
+      return { ok: false, erro: AVISO_SEM_PERMISSAO };
+    }
     const equipe = db.equipes.find((e) => e.id === equipeId);
     const modalidade = db.modalidades.find((m) => m.id === modalidadeId && m.ativo);
     if (!equipe || !modalidade || equipe.edicao_id !== modalidade.edicao_id)
@@ -1334,16 +1425,42 @@ export class StoreService {
           return {
             ...inicial,
             ...salvo,
-            usuarios: [...usuariosSalvos, ...usuariosMock].map((usuario) => ({
-              ...usuario,
-              tipo_conta: usuario.tipo_conta ?? (usuario.perfil === 'administrador'
+            usuarios: [...usuariosSalvos, ...usuariosMock].map((usuario) => {
+              const tipoConta = usuario.tipo_conta ?? (usuario.perfil === 'administrador'
                 ? 'administrador'
                 : usuario.perfil === 'empresa'
                   ? 'empresa'
                   : usuario.perfil === 'participante'
                     ? 'participante'
-                    : 'voluntario'),
-            })),
+                    : 'voluntario');
+              const cadastroLegado = (salvo.cadastrosParticipantes ?? []).find(
+                (item) => item.usuario_id === usuario.id,
+              );
+              const parceriaLegada = (salvo.parcerias ?? []).find((item) => item.usuario_id === usuario.id);
+              const inscricaoVoluntariaLegada = (salvo.inscricoesVoluntarios ?? []).find(
+                (item) => item.usuario_id === usuario.id,
+              );
+              const telefoneLegado = cadastroLegado && 'telefone_responsavel' in cadastroLegado
+                ? cadastroLegado.telefone_responsavel
+                : cadastroLegado && 'telefone' in cadastroLegado
+                  ? cadastroLegado.telefone
+                  : parceriaLegada?.telefone ?? inscricaoVoluntariaLegada?.telefone;
+              return {
+                ...usuario,
+                tipo_conta: tipoConta,
+                ...(tipoConta === 'participante'
+                  ? { tipo_participante: usuario.tipo_participante ?? (cadastroLegado?.tipo === 'escola' ? 'escola' : 'pessoa_fisica') }
+                  : {}),
+                ...(usuario.cnpj || !cadastroLegado || !('cnpj' in cadastroLegado)
+                  ? {}
+                  : { cnpj: cadastroLegado.cnpj }),
+                ...(usuario.cnpj || !parceriaLegada ? {} : { cnpj: parceriaLegada.cnpj }),
+                ...(usuario.telefone || !telefoneLegado ? {} : { telefone: telefoneLegado }),
+                ...(usuario.organizacao || !cadastroLegado || !('nome_escola' in cadastroLegado)
+                  ? {}
+                  : { organizacao: cadastroLegado.nome_escola }),
+              };
+            }),
             cargosVoluntarios: salvo.cargosVoluntarios ?? inicial.cargosVoluntarios,
             inscricoesVoluntarios: remapearUsuarios(salvo.inscricoesVoluntarios, inicial.inscricoesVoluntarios),
             cadastrosParticipantes: remapearUsuarios(salvo.cadastrosParticipantes, inicial.cadastrosParticipantes),

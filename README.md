@@ -6,12 +6,11 @@ substituindo planilhas e papéis por um fluxo auditável.
 
 ## Estrutura
 
-```
-docs/contexto/   Regulamento e briefing do hackathon (PDF)
-frontend/        Aplicação Angular (standalone components, signals, Tailwind)
-PLANO-MVP-GESTAO-COMPETICOES.md   Plano mestre: escopo, modelo de dados,
-                                  regras de negócio, roadmap e segurança
-```
+| Caminho | Conteúdo |
+|---|---|
+| `docs/` | Plano do MVP e PDFs de contexto do campeonato. |
+| `docs/PLANO-MVP-GESTAO-COMPETICOES.md` | Plano mestre: produto, tecnologias, arquitetura, roadmap e infraestrutura. |
+| `frontend/` | Aplicação Angular (standalone components, Signals e Tailwind). |
 
 ## Frontend
 
@@ -33,6 +32,10 @@ backend e persistência compartilhada continuam pendentes.
 
 Consulte [frontend/README.md](frontend/README.md) para estrutura, rotas,
 roteiro de demonstração e limitações.
+
+O plano mestre reúne tecnologias, arquitetura, opção gratuita, AWS paga, custos
+e roadmap dos próximos seis meses em um único documento:
+[PLANO-MVP-GESTAO-COMPETICOES.md](docs/PLANO-MVP-GESTAO-COMPETICOES.md).
 
 ## Teste de sincronizacao
 
