@@ -50,7 +50,7 @@ const TURNOS_VOLUNTARIO = [
             [attr.aria-pressed]="modo() === 'entrar'"
             (click)="modo.set('entrar')"
           >
-            Entrar
+            Contas de teste
           </button>
           <button
             class="btn"
@@ -66,9 +66,9 @@ const TURNOS_VOLUNTARIO = [
 
         @if (modo() === 'entrar') {
           <section class="mt-6" aria-labelledby="titulo-entrar">
-            <h2 id="titulo-entrar" class="text-sm font-semibold">Entrar na demonstração</h2>
+            <h2 id="titulo-entrar" class="text-sm font-semibold">Contas de teste</h2>
             <p class="mt-1 text-sm text-base-content/60">
-              Primeiro selecione que tipo de pessoa você é; depois escolha sua conta.
+              Selecione o tipo de perfil e toque em uma conta da lista para acessar.
             </p>
             <label class="form-control mt-4 w-full">
               <span class="label-text mb-1 font-medium">Tipo de perfil</span>
