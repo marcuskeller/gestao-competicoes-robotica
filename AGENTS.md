@@ -17,7 +17,7 @@
 - Componentes de tela devem cuidar da apresentação e interação, delegando regras ao domínio/serviços. Não coloque regras de negócio em templates.
 - Mantenha dependências apontando para dentro: domínio não importa Angular, páginas não acessam `localStorage` diretamente e componentes compartilhados não conhecem detalhes de páginas.
 - Prefira a estrutura e bibliotecas já existentes. Só introduza camadas, abstrações ou dependências quando resolverem uma necessidade concreta do MVP.
-- Use `@lucide/angular` por meio do componente compartilhado `app-icon`; evite SVGs de ícones avulsos nas páginas.
+- Todo ícone novo deve vir da biblioteca Lucide (`@lucide/angular`), usando o componente compartilhado `app-icon`. Não desenhe nem adicione ícones em SVG, imagens, caracteres Unicode ou outras bibliotecas; escolha o ícone Lucide equivalente.
 
 ## Padrões obrigatórios
 
