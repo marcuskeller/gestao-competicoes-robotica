@@ -21,9 +21,15 @@ bun install
 bun start     # http://localhost:4200
 ```
 
-Requisitos: Node 20+ (ou Bun). Build de produção: `bun run build`.
+Requisitos: Node 22.22.3+ (linha 22), 24.15.0+ (linha 24) ou 26+, e Bun 1.4.4.
+Build de produção: `bun run build`. Testes no Chrome: `bun run test:e2e`.
 
 ## Status
 
-Em desenvolvimento — frontend com camada de domínio, store, permissões e telas
-base já implementadas; backend e persistência no roadmap do plano mestre.
+Frontend MVP navegável: login de demonstração, painel, cadastros, inscrições,
+chaveamento por grupos, pontuação, classificação, homologação, publicação,
+retificação, auditoria e portal público. Dados fictícios salvos em `localStorage`;
+backend e persistência compartilhada continuam pendentes.
+
+Consulte [frontend/README.md](frontend/README.md) para estrutura, rotas,
+roteiro de demonstração e limitações.

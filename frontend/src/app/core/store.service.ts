@@ -9,6 +9,7 @@ import type {
   Escola,
   Equipe,
   Inscricao,
+  Participante,
   Resultado,
   StatusEdicao,
   StatusEtapa,
@@ -64,10 +65,19 @@ export class StoreService {
   entrar(email: string): Resultado {
     const db = this._db();
     const usuario = db.usuarios.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
-    if (!usuario) return { ok: false, erro: 'Usuário não encontrado. Use uma das contas de demonstração.' };
-    if (!usuario.ativo) return { ok: false, erro: 'Usuário inativo não pode autenticar (RN-13.6).' };
+    if (!usuario)
+      return { ok: false, erro: 'Usuário não encontrado. Use uma das contas de demonstração.' };
+    if (!usuario.ativo)
+      return { ok: false, erro: 'Usuário inativo não pode autenticar (RN-13.6).' };
     const proximo = { ...db, usuarioAtualId: usuario.id };
-    this._db.set(this.comLog(proximo, { tabela: 'users', registro_id: usuario.id, acao: 'login', novo: usuario.email }));
+    this._db.set(
+      this.comLog(proximo, {
+        tabela: 'users',
+        registro_id: usuario.id,
+        acao: 'login',
+        novo: usuario.email,
+      }),
+    );
     return { ok: true, id: usuario.id };
   }
 
@@ -77,7 +87,13 @@ export class StoreService {
     const proximo = { ...db, usuarioAtualId: null };
     this._db.set(
       usuario
-        ? this.comLog(proximo, { tabela: 'users', registro_id: usuario.id, acao: 'logout', anterior: usuario.email, novo: null })
+        ? this.comLog(proximo, {
+            tabela: 'users',
+            registro_id: usuario.id,
+            acao: 'logout',
+            anterior: usuario.email,
+            novo: null,
+          })
         : proximo,
     );
   }
@@ -91,13 +107,22 @@ export class StoreService {
     this._db.set(criarEstadoInicial());
   }
 
-  criarEdicao(dados: { ano: number; numero: number; nome: string; tema: string; data_inicio: string; data_fim: string; local: string }): Resultado {
+  criarEdicao(dados: {
+    ano: number;
+    numero: number;
+    nome: string;
+    tema: string;
+    data_inicio: string;
+    data_fim: string;
+    local: string;
+  }): Resultado {
     if (!this.podeFazer('edicao.criar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
     const db = this._db();
     if (db.edicoes.some((e) => e.ano === Number(dados.ano))) {
       return { ok: false, erro: 'Já existe uma edição com este ano (RN-1.1).' };
     }
-    if (dados.data_fim < dados.data_inicio) return { ok: false, erro: 'A data final deve ser maior ou igual à inicial (RN-1.5).' };
+    if (dados.data_fim < dados.data_inicio)
+      return { ok: false, erro: 'A data final deve ser maior ou igual à inicial (RN-1.5).' };
     const id = this.proximoId(db.edicoes);
     const nova: Edicao = {
       id,
@@ -108,7 +133,14 @@ export class StoreService {
       numero: Number(dados.numero),
     };
     const proximo = { ...db, edicoes: [nova, ...db.edicoes] };
-    this._db.set(this.comLog(proximo, { tabela: 'campeonato_edicoes', registro_id: id, acao: 'criacao', novo: `${nova.ano} — ${nova.nome}` }));
+    this._db.set(
+      this.comLog(proximo, {
+        tabela: 'campeonato_edicoes',
+        registro_id: id,
+        acao: 'criacao',
+        novo: `${nova.ano} — ${nova.nome}`,
+      }),
+    );
     return { ok: true, id };
   }
 
@@ -120,8 +152,20 @@ export class StoreService {
     if (db.edicoes.some((e) => e.id !== id && e.ano === Number(dados.ano))) {
       return { ok: false, erro: 'Já existe uma edição com este ano (RN-1.1).' };
     }
-    const proximo = { ...db, edicoes: db.edicoes.map((e) => (e.id === id ? { ...e, ...dados } : e)) };
-    this._db.set(this.comLog(proximo, { tabela: 'campeonato_edicoes', registro_id: id, acao: 'alteracao', campo: 'nome', anterior: edicao.nome, novo: dados.nome ?? edicao.nome }));
+    const proximo = {
+      ...db,
+      edicoes: db.edicoes.map((e) => (e.id === id ? { ...e, ...dados } : e)),
+    };
+    this._db.set(
+      this.comLog(proximo, {
+        tabela: 'campeonato_edicoes',
+        registro_id: id,
+        acao: 'alteracao',
+        campo: 'nome',
+        anterior: edicao.nome,
+        novo: dados.nome ?? edicao.nome,
+      }),
+    );
     return { ok: true, id };
   }
 
@@ -133,30 +177,64 @@ export class StoreService {
     const fluxo: StatusEdicao[] = ['planejada', 'inscricoes', 'em_andamento', 'encerrada'];
     const atual = fluxo.indexOf(edicao.status);
     const alvo = fluxo.indexOf(status);
-    if (atual === -1 || alvo !== atual + 1) return { ok: false, erro: 'Transição de status inválida (RN-1.2).' };
+    if (atual === -1 || alvo !== atual + 1)
+      return { ok: false, erro: 'Transição de status inválida (RN-1.2).' };
     const proximo = { ...db, edicoes: db.edicoes.map((e) => (e.id === id ? { ...e, status } : e)) };
-    this._db.set(this.comLog(proximo, { tabela: 'campeonato_edicoes', registro_id: id, acao: 'alteracao', campo: 'status', anterior: edicao.status, novo: status }));
+    this._db.set(
+      this.comLog(proximo, {
+        tabela: 'campeonato_edicoes',
+        registro_id: id,
+        acao: 'alteracao',
+        campo: 'status',
+        anterior: edicao.status,
+        novo: status,
+      }),
+    );
     return { ok: true, id };
   }
 
   excluirEdicao(id: number): Resultado {
     if (!this.podeFazer('edicao.excluir')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
     const db = this._db();
-    if (db.modalidades.some((m) => m.edicao_id === id) || db.equipes.some((e) => e.edicao_id === id)) {
-      return { ok: false, erro: 'Edição com modalidades ou equipes vinculadas não pode ser excluída (RN-1.6).' };
+    if (
+      db.modalidades.some((m) => m.edicao_id === id) ||
+      db.equipes.some((e) => e.edicao_id === id)
+    ) {
+      return {
+        ok: false,
+        erro: 'Edição com modalidades ou equipes vinculadas não pode ser excluída (RN-1.6).',
+      };
     }
     const proximo = { ...db, edicoes: db.edicoes.filter((e) => e.id !== id) };
-    this._db.set(this.comLog(proximo, { tabela: 'campeonato_edicoes', registro_id: id, acao: 'exclusao', anterior: db.edicoes.find((e) => e.id === id)?.nome }));
+    this._db.set(
+      this.comLog(proximo, {
+        tabela: 'campeonato_edicoes',
+        registro_id: id,
+        acao: 'exclusao',
+        anterior: db.edicoes.find((e) => e.id === id)?.nome,
+      }),
+    );
     return { ok: true, id };
   }
 
-  criarModalidade(dados: { edicao_id: number; nome: string; slug: string; descricao: string; tipo: 'individual' | 'dupla' | 'equipe'; min_integrantes: number; max_integrantes: number }): Resultado {
+  criarModalidade(dados: {
+    edicao_id: number;
+    nome: string;
+    slug: string;
+    descricao: string;
+    tipo: 'individual' | 'dupla' | 'equipe';
+    min_integrantes: number;
+    max_integrantes: number;
+  }): Resultado {
     if (!this.podeFazer('modalidade.editar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
     const db = this._db();
     if (db.modalidades.some((m) => m.edicao_id === dados.edicao_id && m.slug === dados.slug)) {
       return { ok: false, erro: 'Já existe modalidade com este slug na edição (RN-2.2).' };
     }
-    if (Number(dados.min_integrantes) > Number(dados.max_integrantes) || Number(dados.min_integrantes) < 1) {
+    if (
+      Number(dados.min_integrantes) > Number(dados.max_integrantes) ||
+      Number(dados.min_integrantes) < 1
+    ) {
       return { ok: false, erro: 'Mínimo deve ser ≥ 1 e menor ou igual ao máximo (RN-2.3).' };
     }
     const id = this.proximoId(db.modalidades);
@@ -170,24 +248,45 @@ export class StoreService {
       max_integrantes: Number(dados.max_integrantes),
     };
     const proximo = { ...db, modalidades: [...db.modalidades, nova] };
-    this._db.set(this.comLog(proximo, { tabela: 'modalidades', registro_id: id, acao: 'criacao', novo: nova.nome }));
+    this._db.set(
+      this.comLog(proximo, {
+        tabela: 'modalidades',
+        registro_id: id,
+        acao: 'criacao',
+        novo: nova.nome,
+      }),
+    );
     return { ok: true, id };
   }
 
-  criarCriterioPontuacao(dados: { modalidade_id: number; nome: string; descricao: string; peso: number }): Resultado {
+  criarCriterioPontuacao(dados: {
+    modalidade_id: number;
+    nome: string;
+    descricao: string;
+    peso: number;
+  }): Resultado {
     if (!this.podeFazer('criterio.editar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
     const db = this._db();
-    if (Number(dados.peso) <= 0) return { ok: false, erro: 'O peso deve ser maior que zero (RN-2.4).' };
+    if (Number(dados.peso) <= 0)
+      return { ok: false, erro: 'O peso deve ser maior que zero (RN-2.4).' };
     const id = this.proximoId(db.criteriosPontuacao);
     const criterio: CriterioPontuacao = {
       id,
-      ordem: db.criteriosPontuacao.filter((c) => c.modalidade_id === dados.modalidade_id).length + 1,
+      ordem:
+        db.criteriosPontuacao.filter((c) => c.modalidade_id === dados.modalidade_id).length + 1,
       ativo: true,
       ...dados,
       peso: Number(dados.peso),
     };
     const proximo = { ...db, criteriosPontuacao: [...db.criteriosPontuacao, criterio] };
-    this._db.set(this.comLog(proximo, { tabela: 'criterios_pontuacao', registro_id: id, acao: 'criacao', novo: criterio.nome }));
+    this._db.set(
+      this.comLog(proximo, {
+        tabela: 'criterios_pontuacao',
+        registro_id: id,
+        acao: 'criacao',
+        novo: criterio.nome,
+      }),
+    );
     return { ok: true, id };
   }
 
@@ -197,21 +296,41 @@ export class StoreService {
     const criterio = db.criteriosPontuacao.find((c) => c.id === id);
     if (!criterio) return { ok: false, erro: 'Critério não encontrado.' };
     const proximo = { ...db, criteriosPontuacao: db.criteriosPontuacao.filter((c) => c.id !== id) };
-    this._db.set(this.comLog(proximo, { tabela: 'criterios_pontuacao', registro_id: id, acao: 'exclusao', anterior: criterio.nome }));
+    this._db.set(
+      this.comLog(proximo, {
+        tabela: 'criterios_pontuacao',
+        registro_id: id,
+        acao: 'exclusao',
+        anterior: criterio.nome,
+      }),
+    );
     return { ok: true, id };
   }
 
-  criarCriterioDesempate(dados: { modalidade_id: number; nome: string; campo: 'pontos_finais' | 'penalidades' | 'vitorias' | 'saldo' | 'tempo'; direcao: 'asc' | 'desc' }): Resultado {
+  criarCriterioDesempate(dados: {
+    modalidade_id: number;
+    nome: string;
+    campo: 'pontos_finais' | 'penalidades' | 'vitorias' | 'saldo' | 'tempo';
+    direcao: 'asc' | 'desc';
+  }): Resultado {
     if (!this.podeFazer('criterio.editar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
     const db = this._db();
     const id = this.proximoId(db.criteriosDesempate);
     const criterio = {
       id,
       ...dados,
-      ordem: db.criteriosDesempate.filter((c) => c.modalidade_id === dados.modalidade_id).length + 1,
+      ordem:
+        db.criteriosDesempate.filter((c) => c.modalidade_id === dados.modalidade_id).length + 1,
     };
     const proximo = { ...db, criteriosDesempate: [...db.criteriosDesempate, criterio] };
-    this._db.set(this.comLog(proximo, { tabela: 'criterios_desempate', registro_id: id, acao: 'criacao', novo: criterio.nome }));
+    this._db.set(
+      this.comLog(proximo, {
+        tabela: 'criterios_desempate',
+        registro_id: id,
+        acao: 'criacao',
+        novo: criterio.nome,
+      }),
+    );
     return { ok: true, id };
   }
 
@@ -224,11 +343,23 @@ export class StoreService {
       .filter((c) => c.id !== id)
       .map((c) => (c.modalidade_id === criterio.modalidade_id ? c : c));
     const proximo = { ...db, criteriosDesempate: restantes };
-    this._db.set(this.comLog(proximo, { tabela: 'criterios_desempate', registro_id: id, acao: 'exclusao', anterior: criterio.nome }));
+    this._db.set(
+      this.comLog(proximo, {
+        tabela: 'criterios_desempate',
+        registro_id: id,
+        acao: 'exclusao',
+        anterior: criterio.nome,
+      }),
+    );
     return { ok: true, id };
   }
 
-  publicarRegra(dados: { edicao_id: number; modalidade_id: number | null; titulo: string; conteudo: string }): Resultado {
+  publicarRegra(dados: {
+    edicao_id: number;
+    modalidade_id: number | null;
+    titulo: string;
+    conteudo: string;
+  }): Resultado {
     if (!this.podeFazer('regra.publicar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
     const db = this._db();
     const usuario = this.usuario();
@@ -253,21 +384,47 @@ export class StoreService {
       substitui_regra_id: anteriores[0]?.id ?? null,
     };
     const regras = [
-      ...db.regras.map((r) => (anteriores.some((a) => a.id === r.id) ? { ...r, status: 'revogada' as const } : r)),
+      ...db.regras.map((r) =>
+        anteriores.some((a) => a.id === r.id) ? { ...r, status: 'revogada' as const } : r,
+      ),
       nova,
     ];
     const proximo = { ...db, regras };
-    this._db.set(this.comLog(proximo, { tabela: 'regras', registro_id: id, acao: 'publicacao', novo: `${nova.titulo} (v${nova.versao})` }));
+    this._db.set(
+      this.comLog(proximo, {
+        tabela: 'regras',
+        registro_id: id,
+        acao: 'publicacao',
+        novo: `${nova.titulo} (v${nova.versao})`,
+      }),
+    );
     return { ok: true, id };
   }
 
-  criarEscola(dados: { nome: string; rede: Escola['rede']; municipio: string; uf: string }): Resultado {
+  criarEscola(dados: {
+    nome: string;
+    rede: Escola['rede'];
+    municipio: string;
+    uf: string;
+  }): Resultado {
     if (!this.podeFazer('escola.editar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
     const db = this._db();
     const id = this.proximoId(db.escolas);
-    const escola: Escola = { id, identificador_publico: crypto.randomUUID(), ativo: true, ...dados };
+    const escola: Escola = {
+      id,
+      identificador_publico: crypto.randomUUID(),
+      ativo: true,
+      ...dados,
+    };
     const proximo = { ...db, escolas: [...db.escolas, escola] };
-    this._db.set(this.comLog(proximo, { tabela: 'escolas', registro_id: id, acao: 'criacao', novo: escola.nome }));
+    this._db.set(
+      this.comLog(proximo, {
+        tabela: 'escolas',
+        registro_id: id,
+        acao: 'criacao',
+        novo: escola.nome,
+      }),
+    );
     return { ok: true, id };
   }
 
@@ -283,7 +440,75 @@ export class StoreService {
       ...dados,
     };
     const proximo = { ...db, equipes: [...db.equipes, equipe] };
-    this._db.set(this.comLog(proximo, { tabela: 'equipes', registro_id: id, acao: 'criacao', novo: `${equipe.nome} (escola ${equipe.escola_id})` }));
+    this._db.set(
+      this.comLog(proximo, {
+        tabela: 'equipes',
+        registro_id: id,
+        acao: 'criacao',
+        novo: `${equipe.nome} (escola ${equipe.escola_id})`,
+      }),
+    );
+    return { ok: true, id };
+  }
+
+  criarParticipante(dados: Omit<Participante, 'id'>): Resultado {
+    if (!this.podeFazer('equipe.editar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
+    const db = this._db();
+    if (!db.equipes.some((e) => e.id === dados.equipe_id))
+      return { ok: false, erro: 'Equipe não encontrada.' };
+    const id = this.proximoId(db.participantes);
+    this._db.set(
+      this.comLog(
+        { ...db, participantes: [...db.participantes, { id, ...dados }] },
+        { tabela: 'participantes', registro_id: id, acao: 'criacao', novo: dados.nome },
+      ),
+    );
+    return { ok: true, id };
+  }
+
+  submeterInscricao(equipeId: number, modalidadeId: number): Resultado {
+    if (!this.podeFazer('equipe.editar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
+    const db = this._db();
+    const equipe = db.equipes.find((e) => e.id === equipeId);
+    const modalidade = db.modalidades.find((m) => m.id === modalidadeId && m.ativo);
+    if (!equipe || !modalidade || equipe.edicao_id !== modalidade.edicao_id)
+      return { ok: false, erro: 'Equipe e modalidade devem pertencer à mesma edição.' };
+    if (db.edicoes.find((e) => e.id === equipe.edicao_id)?.status !== 'inscricoes')
+      return { ok: false, erro: 'A edição não está no período de inscrições.' };
+    if (
+      db.inscricoes.some(
+        (i) =>
+          i.equipe_id === equipeId && i.modalidade_id === modalidadeId && i.status !== 'cancelada',
+      )
+    )
+      return { ok: false, erro: 'A equipe já possui inscrição nesta modalidade.' };
+    const integrantes = db.participantes.filter(
+      (p) => p.equipe_id === equipeId && p.papel !== 'tecnico',
+    ).length;
+    if (integrantes < modalidade.min_integrantes || integrantes > modalidade.max_integrantes)
+      return {
+        ok: false,
+        erro: `A modalidade exige entre ${modalidade.min_integrantes} e ${modalidade.max_integrantes} integrantes.`,
+      };
+    const id = this.proximoId(db.inscricoes);
+    const inscricao: Inscricao = {
+      id,
+      identificador_publico: crypto.randomUUID(),
+      edicao_id: equipe.edicao_id,
+      equipe_id: equipeId,
+      modalidade_id: modalidadeId,
+      status: 'submetida',
+      submetida_em: new Date().toISOString(),
+      avaliada_em: null,
+      avaliada_por: null,
+      motivo_rejeicao: null,
+    };
+    this._db.set(
+      this.comLog(
+        { ...db, inscricoes: [...db.inscricoes, inscricao] },
+        { tabela: 'inscricoes', registro_id: id, acao: 'criacao', novo: equipe.nome },
+      ),
+    );
     return { ok: true, id };
   }
 
@@ -292,10 +517,14 @@ export class StoreService {
     const db = this._db();
     const inscricao = db.inscricoes.find((i) => i.id === id);
     if (!inscricao) return { ok: false, erro: 'Inscrição não encontrada.' };
-    if (status === 'rejeitada' && !motivo?.trim()) return { ok: false, erro: 'Rejeição exige motivo (RN-5.3).' };
+    if (status === 'rejeitada' && !motivo?.trim())
+      return { ok: false, erro: 'Rejeição exige motivo (RN-5.3).' };
     const equipe = db.equipes.find((e) => e.id === inscricao.equipe_id);
     if (status === 'aprovada' && ['desclassificada', 'desistente'].includes(equipe?.status ?? '')) {
-      return { ok: false, erro: 'Equipe desclassificada/desistente não pode ser aprovada (RN-5.6).' };
+      return {
+        ok: false,
+        erro: 'Equipe desclassificada/desistente não pode ser aprovada (RN-5.6).',
+      };
     }
     const usuario = this.usuario();
     const agora = new Date().toISOString();
@@ -313,11 +542,27 @@ export class StoreService {
           : i,
       ),
     };
-    this._db.set(this.comLog(proximo, { tabela: 'inscricoes', registro_id: id, acao: 'alteracao', campo: 'status', anterior: inscricao.status, novo: status }));
+    this._db.set(
+      this.comLog(proximo, {
+        tabela: 'inscricoes',
+        registro_id: id,
+        acao: 'alteracao',
+        campo: 'status',
+        anterior: inscricao.status,
+        novo: status,
+      }),
+    );
     return { ok: true, id };
   }
 
-  criarEtapa(dados: { edicao_id: number; modalidade_id: number; nome: string; tipo: Etapa['tipo']; data_inicio: string; data_fim: string }): Resultado {
+  criarEtapa(dados: {
+    edicao_id: number;
+    modalidade_id: number;
+    nome: string;
+    tipo: Etapa['tipo'];
+    data_inicio: string;
+    data_fim: string;
+  }): Resultado {
     if (!this.podeFazer('etapa.editar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
     const db = this._db();
     const id = this.proximoId(db.etapas);
@@ -328,7 +573,14 @@ export class StoreService {
       status: 'planejada',
     };
     const proximo = { ...db, etapas: [...db.etapas, etapa] };
-    this._db.set(this.comLog(proximo, { tabela: 'etapas', registro_id: id, acao: 'criacao', novo: etapa.nome }));
+    this._db.set(
+      this.comLog(proximo, {
+        tabela: 'etapas',
+        registro_id: id,
+        acao: 'criacao',
+        novo: etapa.nome,
+      }),
+    );
     return { ok: true, id };
   }
 
@@ -338,20 +590,33 @@ export class StoreService {
     const etapa = db.etapas.find((e) => e.id === etapaId);
     if (!etapa) return { ok: false, erro: 'Etapa não encontrada.' };
     if (db.disputas.some((d) => d.etapa_id === etapaId)) {
-      return { ok: false, erro: 'Já existem disputas nesta etapa — geração idempotente bloqueada (RN-6.7).' };
+      return {
+        ok: false,
+        erro: 'Já existem disputas nesta etapa — geração idempotente bloqueada (RN-6.7).',
+      };
     }
     const aprovadas = db.inscricoes
-      .filter((i) => i.edicao_id === etapa.edicao_id && i.modalidade_id === etapa.modalidade_id && i.status === 'aprovada')
+      .filter(
+        (i) =>
+          i.edicao_id === etapa.edicao_id &&
+          i.modalidade_id === etapa.modalidade_id &&
+          i.status === 'aprovada',
+      )
       .map((i) => i.equipe_id);
-    if (aprovadas.length < 2) return { ok: false, erro: 'É necessário ao menos 2 inscrições aprovadas (RN-6.4).' };
+    if (aprovadas.length < 2)
+      return { ok: false, erro: 'É necessário ao menos 2 inscrições aprovadas (RN-6.4).' };
 
+    if (etapa.tipo !== 'grupos')
+      return { ok: false, erro: 'Esta versão gera chaveamento apenas para fases de grupos.' };
     const gruposExistentes = db.grupos.filter((g) => g.etapa_id === etapaId);
     const grupos = gruposExistentes.length
       ? gruposExistentes
-      : [
-          { id: this.proximoId(db.grupos), etapa_id: etapaId, nome: 'Grupo A', ordem: 1 },
-          { id: this.proximoId(db.grupos) + 1, etapa_id: etapaId, nome: 'Grupo B', ordem: 2 },
-        ];
+      : aprovadas.length < 4
+        ? [{ id: this.proximoId(db.grupos), etapa_id: etapaId, nome: 'Grupo A', ordem: 1 }]
+        : [
+            { id: this.proximoId(db.grupos), etapa_id: etapaId, nome: 'Grupo A', ordem: 1 },
+            { id: this.proximoId(db.grupos) + 1, etapa_id: etapaId, nome: 'Grupo B', ordem: 2 },
+          ];
 
     const associacoes = aprovadas.map((equipeId, indice) => ({
       grupo_id: grupos[indice % grupos.length].id,
@@ -362,7 +627,9 @@ export class StoreService {
     const baseId = this.proximoId(db.disputas);
     let sequencia = 0;
     grupos.forEach((grupo) => {
-      const integrantes = associacoes.filter((a) => a.grupo_id === grupo.id).map((a) => a.equipe_id);
+      const integrantes = associacoes
+        .filter((a) => a.grupo_id === grupo.id)
+        .map((a) => a.equipe_id);
       for (let i = 0; i < integrantes.length; i += 1) {
         for (let j = i + 1; j < integrantes.length; j += 1) {
           sequencia += 1;
@@ -387,10 +654,20 @@ export class StoreService {
     const proximo = {
       ...db,
       grupos: gruposExistentes.length ? db.grupos : [...db.grupos, ...grupos],
-      equipeGrupo: [...db.equipeGrupo.filter((eg) => !grupos.some((g) => g.id === eg.grupo_id)), ...associacoes],
+      equipeGrupo: [
+        ...db.equipeGrupo.filter((eg) => !grupos.some((g) => g.id === eg.grupo_id)),
+        ...associacoes,
+      ],
       disputas: [...db.disputas, ...disputas],
     };
-    this._db.set(this.comLog(proximo, { tabela: 'disputas', registro_id: etapaId, acao: 'criacao', novo: `${disputas.length} disputas geradas em ${etapa.nome}` }));
+    this._db.set(
+      this.comLog(proximo, {
+        tabela: 'disputas',
+        registro_id: etapaId,
+        acao: 'criacao',
+        novo: `${disputas.length} disputas geradas em ${etapa.nome}`,
+      }),
+    );
     return { ok: true, id: etapaId };
   }
 
@@ -405,22 +682,42 @@ export class StoreService {
     }
     const resultados = db.resultados.filter((r) => r.disputa_id === id);
     if (status === 'concluida' && resultados.length < 2) {
-      return { ok: false, erro: 'Disputa concluída exige resultado para as duas equipes (RN-7.4).' };
+      return {
+        ok: false,
+        erro: 'Disputa concluída exige resultado para as duas equipes (RN-7.4).',
+      };
     }
     let vencedor = disputa.vencedor_equipe_id;
     if (status === 'concluida') {
       const a = resultados.find((r) => r.equipe_id === disputa.equipe_a_id);
       const b = resultados.find((r) => r.equipe_id === disputa.equipe_b_id);
-      if (a && b) vencedor = a.pontos_finais >= b.pontos_finais ? a.equipe_id : b.equipe_id;
+      if (a && b)
+        vencedor =
+          a.pontos_finais === b.pontos_finais
+            ? null
+            : a.pontos_finais > b.pontos_finais
+              ? a.equipe_id
+              : b.equipe_id;
     }
     if (status === 'wo' && !disputa.vencedor_equipe_id) {
       return { ok: false, erro: 'WO exige vencedor definido (RN-7.5).' };
     }
     const proximo = {
       ...db,
-      disputas: db.disputas.map((d) => (d.id === id ? { ...d, status, vencedor_equipe_id: vencedor } : d)),
+      disputas: db.disputas.map((d) =>
+        d.id === id ? { ...d, status, vencedor_equipe_id: vencedor } : d,
+      ),
     };
-    this._db.set(this.comLog(proximo, { tabela: 'disputas', registro_id: id, acao: 'alteracao', campo: 'status', anterior: disputa.status, novo: status }));
+    this._db.set(
+      this.comLog(proximo, {
+        tabela: 'disputas',
+        registro_id: id,
+        acao: 'alteracao',
+        campo: 'status',
+        anterior: disputa.status,
+        novo: status,
+      }),
+    );
     return { ok: true, id };
   }
 
@@ -435,26 +732,49 @@ export class StoreService {
     if (!disputa) return { ok: false, erro: 'Disputa não encontrada.' };
     const etapa = db.etapas.find((e) => e.id === disputa.etapa_id);
     if (etapa && ['homologada', 'publicada'].includes(etapa.status)) {
-      return { ok: false, erro: 'Etapa publicada: correção exige retificação com motivo (RN-8.8).' };
+      return {
+        ok: false,
+        erro: 'Etapa publicada: correção exige retificação com motivo (RN-8.8).',
+      };
     }
     if (![disputa.equipe_a_id, disputa.equipe_b_id].includes(equipeId)) {
       return { ok: false, erro: 'Equipe não pertence a esta disputa.' };
     }
     const penalidades = Number(dados.penalidades);
-    if (Number.isNaN(penalidades) || penalidades < 0) return { ok: false, erro: 'Penalidades devem ser ≥ 0 (RN-8.3).' };
+    if (!Number.isFinite(penalidades) || penalidades < 0)
+      return { ok: false, erro: 'Penalidades devem ser ≥ 0 (RN-8.3).' };
     const criterios = db.criteriosPontuacao.filter(
       (c) => etapa && c.modalidade_id === etapa.modalidade_id && c.ativo,
     );
+    if (
+      !criterios.length ||
+      criterios.some(
+        (c) => !Number.isFinite(Number(dados.valores[c.id])) || Number(dados.valores[c.id]) < 0,
+      )
+    )
+      return { ok: false, erro: 'Informe valores válidos para todos os critérios ativos.' };
+    if (['cancelada', 'wo'].includes(disputa.status))
+      return { ok: false, erro: 'Disputa cancelada ou com WO não recebe pontuação.' };
     const pontos = pontosPorCriterios(criterios, dados.valores);
     const usuario = this.usuario();
     const agora = new Date().toISOString();
-    const existente = db.resultados.find((r) => r.disputa_id === disputaId && r.equipe_id === equipeId);
+    const existente = db.resultados.find(
+      (r) => r.disputa_id === disputaId && r.equipe_id === equipeId,
+    );
     let resultadoId = existente?.id ?? this.proximoId(db.resultados);
 
     const resultados = existente
       ? db.resultados.map((r) =>
           r.id === existente.id
-            ? { ...r, pontos, penalidades, pontos_finais: pontos - penalidades, observacao: dados.observacao ?? '', registrado_por: usuario?.id ?? r.registrado_por, registrado_em: agora }
+            ? {
+                ...r,
+                pontos,
+                penalidades,
+                pontos_finais: pontos - penalidades,
+                observacao: dados.observacao ?? '',
+                registrado_por: usuario?.id ?? r.registrado_por,
+                registrado_em: agora,
+              }
             : r,
         )
       : [
@@ -473,7 +793,9 @@ export class StoreService {
           },
         ];
 
-    const pontuacoesSemAntigas = db.pontuacoesCriterio.filter((p) => p.resultado_disputa_id !== resultadoId);
+    const pontuacoesSemAntigas = db.pontuacoesCriterio.filter(
+      (p) => p.resultado_disputa_id !== resultadoId,
+    );
     let proximaPontuacao = this.proximoId(db.pontuacoesCriterio);
     const novasPontuacoes = criterios.map((criterio) => ({
       id: proximaPontuacao++,
@@ -487,7 +809,11 @@ export class StoreService {
       ...db,
       resultados,
       pontuacoesCriterio: [...pontuacoesSemAntigas, ...novasPontuacoes],
-      disputas: db.disputas.map((d) => (d.id === disputaId && d.status === 'agendada' ? { ...d, status: 'em_andamento' as const } : d)),
+      disputas: db.disputas.map((d) =>
+        d.id === disputaId
+          ? { ...d, status: 'em_andamento' as const, vencedor_equipe_id: null }
+          : d,
+      ),
     };
     this._db.set(
       this.comLog(proximo, {
@@ -507,18 +833,39 @@ export class StoreService {
     const db = this._db();
     const etapa = db.etapas.find((e) => e.id === etapaId);
     if (!etapa) return { ok: false, erro: 'Etapa não encontrada.' };
+    if (['homologada', 'publicada', 'cancelada'].includes(etapa.status))
+      return { ok: false, erro: 'Esta etapa não está disponível para homologação.' };
+    if (!db.disputas.some((d) => d.etapa_id === etapaId && d.status === 'concluida'))
+      return {
+        ok: false,
+        erro: 'A etapa precisa ter pelo menos uma disputa concluída com resultados.',
+      };
     const pendentes = db.disputas.filter(
       (d) => d.etapa_id === etapaId && !['concluida', 'cancelada', 'wo'].includes(d.status),
     );
     if (pendentes.length) {
-      return { ok: false, erro: `Existem ${pendentes.length} disputa(s) pendente(s): ${pendentes.map((d) => d.codigo).join(', ')} (RN-10.2).` };
+      return {
+        ok: false,
+        erro: `Existem ${pendentes.length} disputa(s) pendente(s): ${pendentes.map((d) => d.codigo).join(', ')} (RN-10.2).`,
+      };
     }
     const usuario = this.usuario();
     const proximo = {
       ...db,
-      etapas: db.etapas.map((e) => (e.id === etapaId ? { ...e, status: 'homologada' as StatusEtapa } : e)),
+      etapas: db.etapas.map((e) =>
+        e.id === etapaId ? { ...e, status: 'homologada' as StatusEtapa } : e,
+      ),
     };
-    this._db.set(this.comLog(proximo, { tabela: 'etapas', registro_id: etapaId, acao: 'homologacao', campo: 'status', anterior: etapa.status, novo: `homologada por ${usuario?.nome ?? ''}` }));
+    this._db.set(
+      this.comLog(proximo, {
+        tabela: 'etapas',
+        registro_id: etapaId,
+        acao: 'homologacao',
+        campo: 'status',
+        anterior: etapa.status,
+        novo: `homologada por ${usuario?.nome ?? ''}`,
+      }),
+    );
     return { ok: true, id: etapaId };
   }
 
@@ -527,10 +874,15 @@ export class StoreService {
     const db = this._db();
     const etapa = db.etapas.find((e) => e.id === etapaId);
     if (!etapa) return { ok: false, erro: 'Etapa não encontrada.' };
-    if (etapa.status === 'publicada') return { ok: false, erro: 'Etapa já publicada — use retificação (RN-10.6).' };
-    if (etapa.status !== 'homologada') return { ok: false, erro: 'Publicar exige homologação prévia (RN-10.5).' };
-    const pendentes = db.disputas.filter((d) => d.etapa_id === etapaId && !['concluida', 'cancelada', 'wo'].includes(d.status));
-    if (pendentes.length) return { ok: false, erro: 'Todas as disputas precisam estar concluídas (RN-10.2).' };
+    if (etapa.status === 'publicada')
+      return { ok: false, erro: 'Etapa já publicada — use retificação (RN-10.6).' };
+    if (etapa.status !== 'homologada')
+      return { ok: false, erro: 'Publicar exige homologação prévia (RN-10.5).' };
+    const pendentes = db.disputas.filter(
+      (d) => d.etapa_id === etapaId && !['concluida', 'cancelada', 'wo'].includes(d.status),
+    );
+    if (pendentes.length)
+      return { ok: false, erro: 'Todas as disputas precisam estar concluídas (RN-10.2).' };
 
     const usuario = this.usuario();
     const versao = (publicacaoVigente(db, etapaId)?.versao ?? 0) + 1;
@@ -548,49 +900,75 @@ export class StoreService {
       homologado_por: usuario?.id ?? null,
       homologado_em: agora,
       publicado_em: agora,
-      motivo_retificacao: null,
-    };
-    const proximo = {
-      ...db,
-      publicacoes: [...db.publicacoes, publicacao],
-      etapas: db.etapas.map((e) => (e.id === etapaId ? { ...e, status: 'publicada' as StatusEtapa } : e)),
-    };
-    this._db.set(this.comLog(proximo, { tabela: 'publicacoes_resultado', registro_id: id, acao: 'publicacao', campo: 'versao', anterior: versao - 1, novo: versao }));
-    return { ok: true, id };
-  }
-
-  retificarPublicacao(publicacaoId: number, motivo: string): Resultado {
-    if (!this.podeFazer('retificar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
-    if (!motivo?.trim()) return { ok: false, erro: 'Retificação exige motivo (RN-10.6).' };
-    const db = this._db();
-    const publicacao = db.publicacoes.find((p) => p.id === publicacaoId);
-    if (!publicacao) return { ok: false, erro: 'Publicação não encontrada.' };
-    if (publicacao.status !== 'publicada') return { ok: false, erro: 'Apenas a versão publicada pode ser retificada.' };
-    const usuario = this.usuario();
-    const versao = publicacao.versao + 1;
-    const snapshot = montarSnapshot(db, publicacao.etapa_id, versao);
-    const id = this.proximoId(db.publicacoes);
-    const agora = new Date().toISOString();
-    const nova = {
-      ...publicacao,
-      id,
-      versao,
-      status: 'publicada' as StatusPublicacao,
-      snapshot,
-      homologado_por: usuario?.id ?? null,
-      homologado_em: agora,
-      publicado_em: agora,
-      motivo_retificacao: motivo.trim(),
+      motivo_retificacao:
+        versao > 1
+          ? String(
+              [...db.logs]
+                .reverse()
+                .find(
+                  (l) =>
+                    l.tabela === 'etapas' && l.registro_id === etapaId && l.acao === 'reabertura',
+                )?.valor_novo ?? '',
+            )
+          : null,
     };
     const proximo = {
       ...db,
       publicacoes: [
-        ...db.publicacoes.map((p) => (p.id === publicacaoId ? { ...p, status: 'retificada' as StatusPublicacao } : p)),
-        nova,
+        ...db.publicacoes.map((p) =>
+          p.etapa_id === etapaId && p.status === 'publicada'
+            ? { ...p, status: 'retificada' as StatusPublicacao }
+            : p,
+        ),
+        publicacao,
       ],
+      etapas: db.etapas.map((e) =>
+        e.id === etapaId ? { ...e, status: 'publicada' as StatusEtapa } : e,
+      ),
     };
-    this._db.set(this.comLog(proximo, { tabela: 'publicacoes_resultado', registro_id: id, acao: 'retificacao', campo: 'versao', anterior: publicacao.versao, novo: versao }));
+    this._db.set(
+      this.comLog(proximo, {
+        tabela: 'publicacoes_resultado',
+        registro_id: id,
+        acao: 'publicacao',
+        campo: 'versao',
+        anterior: versao - 1,
+        novo: versao,
+      }),
+    );
     return { ok: true, id };
+  }
+
+  reabrirEtapa(publicacaoId: number, motivo: string): Resultado {
+    if (!this.podeFazer('retificar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
+    if (!motivo.trim()) return { ok: false, erro: 'Retificação exige justificativa.' };
+    const db = this._db();
+    const pub = db.publicacoes.find((p) => p.id === publicacaoId && p.status === 'publicada');
+    const etapa = db.etapas.find((e) => e.id === pub?.etapa_id);
+    if (!pub || !etapa || etapa.status !== 'publicada')
+      return { ok: false, erro: 'A etapa precisa estar publicada para ser reaberta.' };
+    this._db.set(
+      this.comLog(
+        {
+          ...db,
+          etapas: db.etapas.map((e) =>
+            e.id === etapa.id ? { ...e, status: 'em_andamento' as StatusEtapa } : e,
+          ),
+        },
+        {
+          tabela: 'etapas',
+          registro_id: etapa.id,
+          acao: 'reabertura',
+          anterior: 'publicada',
+          novo: motivo.trim(),
+        },
+      ),
+    );
+    return { ok: true, id: etapa.id };
+  }
+
+  retificarPublicacao(publicacaoId: number, motivo: string): Resultado {
+    return this.reabrirEtapa(publicacaoId, motivo);
   }
 
   private comLog(db: Database, dados: DadosLog): Database {

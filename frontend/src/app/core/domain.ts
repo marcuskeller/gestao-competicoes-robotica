@@ -28,13 +28,20 @@ export function pontosPorCriterios(
   );
 }
 
-type LinhaParcial = Omit<LinhaClassificacao, 'posicao' | 'empatado' | 'desempateAplicado' | 'modalidade_nome'>;
+type LinhaParcial = Omit<
+  LinhaClassificacao,
+  'posicao' | 'empatado' | 'desempateAplicado' | 'modalidade_nome'
+>;
 
 function valorDoCampo(linha: LinhaParcial, campo: string): number {
   return Number((linha as unknown as Record<string, number>)[campo] ?? 0);
 }
 
-function compararPorCriterios(a: LinhaParcial, b: LinhaParcial, criterios: CriterioDesempate[]): number {
+function compararPorCriterios(
+  a: LinhaParcial,
+  b: LinhaParcial,
+  criterios: CriterioDesempate[],
+): number {
   for (const criterio of criterios) {
     const va = valorDoCampo(a, criterio.campo);
     const vb = valorDoCampo(b, criterio.campo);
@@ -109,24 +116,36 @@ export function calcularClassificacao(db: Database, etapaId: number): LinhaClass
         linha.tempo += db.pontuacoesCriterio
           .filter(
             (p) =>
-              p.resultado_disputa_id === resultado.id && p.criterio_pontuacao_id === criterioTempo.id,
+              p.resultado_disputa_id === resultado.id &&
+              p.criterio_pontuacao_id === criterioTempo.id,
           )
           .reduce((soma, nota) => soma + Number(nota.valor), 0);
       }
     });
   });
 
-  const linhas = [...mapa.values()].sort((a, b) => compararPorCriterios(a, b, desempates));
   const criteriosUsados: CriterioDesempate[] = desempates.length
     ? desempates
-    : [{ id: 0, modalidade_id: etapa.modalidade_id, nome: 'Pontos finais', campo: 'pontos_finais', direcao: 'desc', ordem: 1 }];
+    : [
+        {
+          id: 0,
+          modalidade_id: etapa.modalidade_id,
+          nome: 'Pontos finais',
+          campo: 'pontos_finais',
+          direcao: 'desc',
+          ordem: 1,
+        },
+      ];
+  const linhas = [...mapa.values()].sort((a, b) => compararPorCriterios(a, b, criteriosUsados));
 
   let posicaoAnterior = 0;
   return linhas.map((linha, indice) => {
     const anterior = linhas[indice - 1];
     const empatadoComAnterior =
       Boolean(anterior) &&
-      criteriosUsados.every((c) => valorDoCampo(anterior, c.campo) === valorDoCampo(linha, c.campo));
+      criteriosUsados.every(
+        (c) => valorDoCampo(anterior, c.campo) === valorDoCampo(linha, c.campo),
+      );
     const posicao = empatadoComAnterior ? posicaoAnterior : indice + 1;
     posicaoAnterior = posicao;
 
@@ -189,5 +208,7 @@ export function montarSnapshot(db: Database, etapaId: number, versao: number): S
 export function publicacoesPublicadas(db: Database): Publicacao[] {
   return db.publicacoes
     .filter((p) => p.status === 'publicada')
-    .sort((a, b) => new Date(b.publicado_em ?? 0).getTime() - new Date(a.publicado_em ?? 0).getTime());
+    .sort(
+      (a, b) => new Date(b.publicado_em ?? 0).getTime() - new Date(a.publicado_em ?? 0).getTime(),
+    );
 }

@@ -9,6 +9,47 @@
 
 ## 0. Como usar este documento
 
+### Estado da entrega frontend — 11/11/2026
+
+O frontend existente foi mantido em **Angular 22**, com Signals, Angular Router,
+Forms e Bun. Esta decisão substitui a proposta React/Vite/React Router/TanStack
+Query das seções 4–5 e do roadmap para a implementação atual. PHP/Laravel e
+PostgreSQL continuam previstos, sem implementação nesta entrega.
+
+O fluxo local é navegável, com cadastros e ações sobre a store, persistindo apenas
+no navegador. A matriz abaixo registra a implementação frontend; os checklists
+originais de migrations, endpoints, segurança e testes backend continuam pendentes.
+Uma funcionalidade local não atende sozinha aos critérios de aceite do sistema completo.
+
+| Módulo | Implementação frontend | Status do sistema completo |
+|---|---|---|
+| M1 | Cadastro, consulta e avanço de status de edição | 🟨 Edição/exclusão via UI e backend pendentes |
+| M2 | Modalidades, critérios com pesos e desempates ordenados | 🟨 Edição/exclusão e backend pendentes |
+| M3 | Publicação de regras com versão e consulta do conteúdo | 🟨 Backend pendente |
+| M4 | Cadastro e consulta de escolas, equipes e participantes | 🟨 Edição/exclusão e backend pendentes |
+| M5 | Submissão, aprovação e rejeição justificada de inscrições | 🟨 Backend e demais transições pendentes |
+| M6 | Criação de etapa de grupos e geração de confrontos | 🟨 Eliminatórias/finais e gestão avançada de grupos pendentes |
+| M7 | Consulta de disputas e conclusão após pontuação | 🟨 Agendamento/WO pela UI e backend pendentes |
+| M8 | Súmula com valores por critério, penalidades e totais | 🟨 Banco com coluna gerada e backend pendentes |
+| M9 | Classificação reativa com desempate e filtro de etapa | 🟨 Validação integral das regras e backend pendentes |
+| M10 | Homologação, publicação e reabertura justificada para nova versão | 🟨 Transações, concorrência e backend pendentes |
+| M11 | Histórico local com antes/depois; IP simulado | 🟨 Auditoria imutável no servidor pendente |
+| M12 | Portal renderiza apenas snapshots publicados | 🟨 API e base compartilhada pendentes |
+| M13 | Login demo, guard de sessão, autorização de módulo e ações por perfil | 🟨 Sanctum e autorização HTTP pendentes |
+| M14 | Exportação local de snapshot JSON publicado | 🟨 API pública e contrato final pendentes |
+
+Checklist frontend desta entrega:
+
+- [x] M1–M4: páginas, consultas, formulários de criação e regras versionadas.
+- [x] M5–M8: inscrições, aprovação, geração por grupos, pontuação e conclusão.
+- [x] M9–M10: classificação, homologação, publicação e retificação com preservação do snapshot.
+- [x] M11–M14: auditoria local restrita, portal público, guards e exportação JSON.
+- [x] Testes no Chrome do fluxo principal, persistência, restrições de perfil, pendências e menu móvel.
+- [ ] Edição e exclusão completas, grupos avançados, eliminatórias e agendamento.
+- [ ] API Laravel/PostgreSQL, autenticação real e aceites A1–A8 completos.
+
+Detalhes de estrutura, execução e limites: `frontend/README.md`.
+
 - **Seções 1–5:** entendimento do problema, escopo, stack e arquitetura.
 - **Seção 6:** modelo de dados (implementar migrations a partir daqui).
 - **Seção 7:** regras de negócio por módulo — **tabela** (o que é a regra) + **checklist** (o que já foi implementado). É o documento de acompanhamento diário.
@@ -687,6 +728,11 @@ etapas 1─N publicacoes_resultado (versões)
 ---
 
 ## 8. Painel de progresso
+
+**Frontend:** páginas e fluxo local implementados conforme matriz e checklist da
+Seção 0, com build de produção e testes E2E. **Sistema completo:** a tabela abaixo
+mantém a contagem original das regras ainda não aceitas de ponta a ponta com o
+backend; seus zeros não representam ausência de implementação frontend.
 
 | Módulo | Regras | Implementado | % |
 |---|---|---|---|

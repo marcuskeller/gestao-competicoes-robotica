@@ -1,0 +1,265 @@
+import { Component, computed, inject, input, output, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { StoreService } from '../core/store.service';
+import type { ModuleKey } from './records.config';
+import type { CampoDesempate, Escola, Participante, Resultado } from '../core/models';
+
+interface Field {
+  key: string;
+  label: string;
+  type?: string;
+  options?: { value: string; label: string }[];
+}
+const field = (key: string, label: string, type = 'text'): Field => ({ key, label, type });
+const options = (key: string, label: string, values: string[]): Field => ({
+  key,
+  label,
+  options: values.map((value) => ({ value, label: value.replaceAll('_', ' ') })),
+});
+
+@Component({
+  selector: 'app-record-form',
+  imports: [FormsModule],
+  template: `
+    <form class="mt-6 rounded-xl border border-base-300 bg-base-100 p-6" (ngSubmit)="submit()">
+      <h2 class="text-lg font-semibold">Adicionar registro</h2>
+      <div class="mt-4 grid gap-4 sm:grid-cols-2">
+        @for (f of fields(); track f.key) {
+          <label class="block text-sm" [for]="'field-' + f.key"
+            >{{ f.label }}
+            @if (f.options) {
+              <select
+                class="select w-full mt-1"
+                [id]="'field-' + f.key"
+                [name]="f.key"
+                [(ngModel)]="values[f.key]"
+                required
+              >
+                <option value="" disabled>Selecione</option>
+                @for (option of f.options; track option.value) {
+                  <option [value]="option.value">{{ option.label }}</option>
+                }
+              </select>
+            } @else if (f.type === 'textarea') {
+              <textarea
+                class="textarea w-full mt-1"
+                [id]="'field-' + f.key"
+                [name]="f.key"
+                [(ngModel)]="values[f.key]"
+                required
+              ></textarea>
+            } @else {
+              <input
+                class="input w-full mt-1"
+                [id]="'field-' + f.key"
+                [name]="f.key"
+                [type]="f.type ?? 'text'"
+                [(ngModel)]="values[f.key]"
+                [attr.min]="f.type === 'number' ? 0 : null"
+                [attr.step]="f.type === 'number' ? 'any' : null"
+                required
+              />
+            }
+          </label>
+        }
+      </div>
+      @if (error()) {
+        <p role="alert" class="mt-4 text-error">{{ error() }}</p>
+      }
+      <button class="btn btn-primary mt-5" type="submit">Salvar</button>
+    </form>
+  `,
+})
+export class RecordFormComponent {
+  readonly store = inject(StoreService);
+  readonly module = input.required<ModuleKey>();
+  readonly saved = output<void>();
+  readonly error = signal('');
+  values: Record<string, string> = {};
+  readonly fields = computed<Field[]>(() => {
+    const db = this.store.db();
+    const select = (
+      key: string,
+      label: string,
+      entries: { id: number; nome: string }[],
+    ): Field => ({
+      key,
+      label,
+      options: entries.map((e) => ({ value: String(e.id), label: e.nome })),
+    });
+    const edicao = select('edicao_id', 'Edição', db.edicoes);
+    const modalidade = select('modalidade_id', 'Modalidade', db.modalidades);
+    const nome = field('nome', 'Nome');
+    switch (this.module()) {
+      case 'edicoes':
+        return [
+          nome,
+          field('ano', 'Ano', 'number'),
+          field('numero', 'Número da edição', 'number'),
+          field('tema', 'Tema'),
+          field('local', 'Local'),
+          field('data_inicio', 'Início', 'date'),
+          field('data_fim', 'Fim', 'date'),
+        ];
+      case 'modalidades':
+        return [
+          edicao,
+          nome,
+          field('slug', 'Identificador (slug)'),
+          field('descricao', 'Descrição', 'textarea'),
+          options('tipo', 'Tipo', ['individual', 'dupla', 'equipe']),
+          field('min_integrantes', 'Mínimo de integrantes', 'number'),
+          field('max_integrantes', 'Máximo de integrantes', 'number'),
+        ];
+      case 'criterios':
+        return [modalidade, nome, field('descricao', 'Descrição'), field('peso', 'Peso', 'number')];
+      case 'desempates':
+        return [
+          modalidade,
+          nome,
+          options('campo', 'Campo', ['pontos_finais', 'penalidades', 'vitorias', 'saldo', 'tempo']),
+          options('direcao', 'Ordenação', ['asc', 'desc']),
+        ];
+      case 'regras':
+        return [
+          edicao,
+          modalidade,
+          field('titulo', 'Título'),
+          field('conteudo', 'Conteúdo', 'textarea'),
+        ];
+      case 'escolas':
+        return [
+          nome,
+          options('rede', 'Rede', ['municipal', 'estadual', 'federal', 'privada']),
+          field('municipio', 'Município'),
+          field('uf', 'UF'),
+        ];
+      case 'equipes':
+        return [edicao, select('escola_id', 'Escola', db.escolas), nome];
+      case 'participantes':
+        return [
+          select('equipe_id', 'Equipe', db.equipes),
+          nome,
+          options('papel', 'Papel', ['capitao', 'integrante', 'tecnico']),
+          field('serie', 'Série'),
+        ];
+      case 'inscricoes':
+        return [select('equipe_id', 'Equipe', db.equipes), modalidade];
+      case 'etapas':
+        return [
+          modalidade,
+          nome,
+          options('tipo', 'Tipo', ['grupos']),
+          field('data_inicio', 'Início', 'date'),
+          field('data_fim', 'Fim', 'date'),
+        ];
+      default:
+        return [];
+    }
+  });
+  submit(): void {
+    const v = this.values;
+    if (this.fields().some((f) => !String(v[f.key] ?? '').trim())) {
+      this.error.set('Preencha todos os campos.');
+      return;
+    }
+    if (v['data_inicio'] && v['data_fim'] < v['data_inicio']) {
+      this.error.set('A data final deve ser igual ou posterior à inicial.');
+      return;
+    }
+    const n = (key: string) => Number(v[key]);
+    const nome = v['nome']?.trim();
+    const modalidadeId = n('modalidade_id');
+    const edicaoId = n('edicao_id');
+    const modalidade = this.store.db().modalidades.find((m) => m.id === modalidadeId);
+    if (this.module() === 'regras' && modalidade?.edicao_id !== edicaoId) {
+      this.error.set('Escolha uma modalidade da edição selecionada.');
+      return;
+    }
+    let result: Resultado;
+    switch (this.module()) {
+      case 'edicoes':
+        result = this.store.criarEdicao({
+          nome,
+          ano: n('ano'),
+          numero: n('numero'),
+          tema: v['tema'],
+          local: v['local'],
+          data_inicio: v['data_inicio'],
+          data_fim: v['data_fim'],
+        });
+        break;
+      case 'modalidades':
+        result = this.store.criarModalidade({
+          nome,
+          edicao_id: edicaoId,
+          slug: v['slug'],
+          descricao: v['descricao'],
+          tipo: v['tipo'] as 'individual' | 'dupla' | 'equipe',
+          min_integrantes: n('min_integrantes'),
+          max_integrantes: n('max_integrantes'),
+        });
+        break;
+      case 'criterios':
+        result = this.store.criarCriterioPontuacao({
+          nome,
+          modalidade_id: modalidadeId,
+          descricao: v['descricao'],
+          peso: n('peso'),
+        });
+        break;
+      case 'desempates':
+        result = this.store.criarCriterioDesempate({
+          nome,
+          modalidade_id: modalidadeId,
+          campo: v['campo'] as CampoDesempate,
+          direcao: v['direcao'] as 'asc' | 'desc',
+        });
+        break;
+      case 'regras':
+        result = this.store.publicarRegra({
+          edicao_id: edicaoId,
+          modalidade_id: modalidadeId,
+          titulo: v['titulo'],
+          conteudo: v['conteudo'],
+        });
+        break;
+      case 'escolas':
+        result = this.store.criarEscola({
+          nome,
+          rede: v['rede'] as Escola['rede'],
+          municipio: v['municipio'],
+          uf: v['uf'].toUpperCase(),
+        });
+        break;
+      case 'equipes':
+        result = this.store.criarEquipe({ nome, edicao_id: edicaoId, escola_id: n('escola_id') });
+        break;
+      case 'participantes':
+        result = this.store.criarParticipante({
+          nome,
+          equipe_id: n('equipe_id'),
+          papel: v['papel'] as Participante['papel'],
+          serie: v['serie'],
+        });
+        break;
+      case 'inscricoes':
+        result = this.store.submeterInscricao(n('equipe_id'), modalidadeId);
+        break;
+      case 'etapas':
+        result = this.store.criarEtapa({
+          nome,
+          modalidade_id: modalidadeId,
+          edicao_id: modalidade?.edicao_id ?? 0,
+          tipo: 'grupos',
+          data_inicio: v['data_inicio'],
+          data_fim: v['data_fim'],
+        });
+        break;
+      default:
+        return;
+    }
+    if (result.ok) this.saved.emit();
+    else this.error.set(result.erro ?? 'Não foi possível salvar.');
+  }
+}
