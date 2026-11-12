@@ -23,6 +23,10 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
       { path: 'dashboard', component: OverviewComponent },
       {
+        path: 'minha-conta',
+        loadComponent: () => import('./pages/account.component').then((m) => m.AccountComponent),
+      },
+      {
         path: 'parceiros',
         loadComponent: () => import('./pages/partners.component').then((m) => m.PartnersComponent),
         data: { permission: 'parceiros.portal' },

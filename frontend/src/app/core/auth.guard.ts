@@ -6,13 +6,14 @@ export const authGuard: CanActivateFn = (_route, state) => {
   const store = inject(StoreService);
   const router = inject(Router);
   const usuario = store.usuario();
+  const rotaMinhaConta = state.url === '/app/minha-conta' || state.url.startsWith('/app/minha-conta/');
   const perfilEmpresa = usuario?.tipo_conta === 'empresa' || usuario?.perfil === 'empresa';
   const perfilParticipante = usuario?.tipo_conta === 'participante' || usuario?.perfil === 'participante';
-  if (perfilEmpresa && !state.url.startsWith('/app/parceiros')) {
+  if (perfilEmpresa && !state.url.startsWith('/app/parceiros') && !rotaMinhaConta) {
     return router.createUrlTree(['/app/parceiros']);
   }
   const rotaPortalParticipante = state.url === '/app/participante' || state.url.startsWith('/app/participante/');
-  if (perfilParticipante && !rotaPortalParticipante) {
+  if (perfilParticipante && !rotaPortalParticipante && !rotaMinhaConta) {
     return router.createUrlTree(['/app/participante']);
   }
   if (usuario && state.url.startsWith('/app/parceiros') && !perfilEmpresa) {

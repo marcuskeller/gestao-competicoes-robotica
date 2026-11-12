@@ -26,12 +26,9 @@ import type { Parceria, Resultado } from '../core/models';
 
     <div class="mt-6 grid min-w-0 gap-5 xl:grid-cols-2">
       <section class="rounded-2xl border border-base-300 bg-base-100 p-5 sm:p-6">
-        <div class="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-primary">Novo apoio</p>
-            <h2 class="mt-1 text-xl font-semibold">O que sua empresa vai doar?</h2>
-          </div>
-          <span class="badge badge-outline">{{ propostas().length }} proposta(s)</span>
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-primary">Novo apoio</p>
+          <h2 class="mt-1 text-xl font-semibold">O que sua empresa vai doar?</h2>
         </div>
         <p class="mt-2 text-sm leading-6 text-base-content/65">
           Apoio financeiro pode ser registrado diretamente na demonstração. Materiais, serviços e outros apoios seguem para análise da organização.

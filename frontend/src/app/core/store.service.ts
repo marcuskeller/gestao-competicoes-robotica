@@ -219,6 +219,82 @@ export class StoreService {
     return { ok: true, id: usuario.id };
   }
 
+  atualizarMinhaConta(dados: {
+    nome: string;
+    email: string;
+    telefone: string;
+    organizacao?: string;
+    cnpj?: string;
+    cpf?: string;
+  }): Resultado {
+    const usuario = this.usuario();
+    if (!usuario) return { ok: false, erro: AVISO_SEM_PERMISSAO };
+
+    const db = this._db();
+    const nome = dados.nome.trim();
+    const email = dados.email.trim().toLowerCase();
+    const telefone = dados.telefone.trim();
+    const organizacao = dados.organizacao?.trim() ?? '';
+    const cnpj = dados.cnpj?.replace(/\D/g, '') ?? '';
+    const cpf = dados.cpf?.replace(/\D/g, '') ?? '';
+    const contaInstitucional = usuario.tipo_conta === 'empresa' ||
+      (usuario.tipo_conta === 'participante' && usuario.tipo_participante === 'escola');
+    const inscricaoVoluntario = db.inscricoesVoluntarios.find((item) => item.usuario_id === usuario.id);
+
+    if (!nome) return { ok: false, erro: 'Informe seu nome.' };
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return { ok: false, erro: 'Informe um e-mail válido.' };
+    }
+    if (db.usuarios.some((item) => item.id !== usuario.id && item.email.toLowerCase() === email)) {
+      return { ok: false, erro: 'Este e-mail já está em uso por outra conta.' };
+    }
+    if (usuario.tipo_conta !== 'administrador' && !telefone) {
+      return { ok: false, erro: 'Informe um telefone de contato.' };
+    }
+    if (contaInstitucional && (!organizacao || !cnpjValido(cnpj))) {
+      return { ok: false, erro: 'Informe o nome da organização e um CNPJ válido.' };
+    }
+    if (contaInstitucional && db.usuarios.some((item) => item.id !== usuario.id && item.cnpj === cnpj)) {
+      return { ok: false, erro: 'Este CNPJ já está associado a outra conta.' };
+    }
+    if (cpf && !cpfValido(cpf)) return { ok: false, erro: 'Informe um CPF válido.' };
+    if (cpf && db.inscricoesVoluntarios.some((item) => item.usuario_id !== usuario.id && item.cpf === cpf)) {
+      return { ok: false, erro: 'Este CPF já está associado a outra inscrição voluntária.' };
+    }
+
+    const atualizado: Usuario = {
+      ...usuario,
+      nome,
+      email,
+      telefone,
+      ...(contaInstitucional ? { organizacao, cnpj } : {}),
+    };
+    const proximo: Database = {
+      ...db,
+      usuarios: db.usuarios.map((item) => item.id === usuario.id ? atualizado : item),
+      inscricoesVoluntarios: inscricaoVoluntario
+        ? db.inscricoesVoluntarios.map((item) => item.usuario_id === usuario.id
+          ? { ...item, telefone, ...(cpf ? { cpf } : {}) }
+          : item)
+        : db.inscricoesVoluntarios,
+      parcerias: db.parcerias.map((item) => item.usuario_id === usuario.id
+        ? { ...item, telefone, ...(contaInstitucional ? { cnpj } : {}) }
+        : item),
+      cadastrosParticipantes: db.cadastrosParticipantes.map((item) => {
+        if (item.usuario_id !== usuario.id || item.tipo !== 'escola') return item;
+        return { ...item, nome_escola: organizacao, cnpj, telefone };
+      }),
+    };
+    this._db.set(this.comLog(proximo, {
+      tabela: 'users',
+      registro_id: usuario.id,
+      acao: 'dados_pessoais_atualizados',
+      anterior: { nome: usuario.nome, email: usuario.email, telefone: usuario.telefone, organizacao: usuario.organizacao, cnpj: usuario.cnpj },
+      novo: { nome, email, telefone, ...(contaInstitucional ? { organizacao, cnpj } : {}), ...(cpf ? { cpf } : {}) },
+    }));
+    return { ok: true, id: usuario.id };
+  }
+
   atualizarPermissoesUsuario(usuarioId: number, permissoes: string[]): Resultado {
     if (this.perfil() !== 'administrador') return { ok: false, erro: AVISO_SEM_PERMISSAO };
     const db = this._db();

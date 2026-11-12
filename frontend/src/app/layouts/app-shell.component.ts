@@ -62,7 +62,7 @@ interface GrupoNav {
               (click)="menuAberto.set(false)"
             >
               <app-icon nome="users" classe="size-4 shrink-0" />
-              <span>Minha conta</span>
+              <span>Contribuições</span>
             </a>
           </nav>
         } @else if (store.usuario()?.perfil === 'participante') {
@@ -107,6 +107,15 @@ interface GrupoNav {
         }
 
         <div class="border-t border-base-200 p-3">
+          <a
+            routerLink="/app/minha-conta"
+            routerLinkActive="bg-primary/10 text-primary"
+            class="btn btn-ghost btn-sm mb-1 w-full justify-start gap-2 text-base-content/70"
+            (click)="menuAberto.set(false)"
+          >
+            <app-icon nome="users" classe="size-4" />
+            Minha conta
+          </a>
           <a
             routerLink="/publico"
             target="_blank"
@@ -177,15 +186,22 @@ interface GrupoNav {
                 </div>
               }
               <div class="flex items-center gap-2.5">
-                <div class="hidden text-right sm:block">
-                  <p class="text-xs font-semibold leading-tight">{{ usuario.nome }}</p>
-                  <p class="text-[11px] text-base-content/50">{{ rotuloPerfil(usuario.perfil) }}</p>
-                </div>
-                <div class="avatar avatar-placeholder">
-                  <div class="w-9 rounded-full bg-primary/12 text-primary">
-                    <span class="text-xs font-semibold">{{ iniciais(usuario.nome) }}</span>
+                <a
+                  routerLink="/app/minha-conta"
+                  class="flex items-center gap-2 rounded-lg p-1.5 transition-colors hover:bg-base-200"
+                  aria-label="Editar dados da minha conta"
+                  title="Editar dados da minha conta"
+                >
+                  <div class="hidden text-right sm:block">
+                    <p class="text-xs font-semibold leading-tight">{{ usuario.nome }}</p>
+                    <p class="text-[11px] text-base-content/50">{{ rotuloPerfil(usuario.perfil) }}</p>
                   </div>
-                </div>
+                  <div class="avatar avatar-placeholder">
+                    <div class="w-9 rounded-full bg-primary/12 text-primary">
+                      <span class="text-xs font-semibold">{{ iniciais(usuario.nome) }}</span>
+                    </div>
+                  </div>
+                </a>
                 <button
                   class="btn btn-ghost btn-square size-11 p-0"
                   type="button"
