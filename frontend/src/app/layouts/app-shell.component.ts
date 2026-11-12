@@ -214,8 +214,9 @@ export class AppShellComponent {
           acao: 'modalidade.ver',
         },
         { modulo: 'M3', rotulo: 'Regras versionadas', rota: '/app/regras', icone: 'book', acao: 'regras.ver' },
-        { modulo: 'M4', rotulo: 'Escolas e equipes', rota: '/app/escolas', icone: 'school', acao: 'escolas.ver' },
+        { modulo: 'M4', rotulo: 'Escolas', rota: '/app/escolas', icone: 'school', acao: 'escolas.ver' },
         { modulo: 'M4', rotulo: 'Equipes', rota: '/app/equipes', icone: 'users', acao: 'equipes.ver' },
+        { modulo: 'M4', rotulo: 'Participantes', rota: '/app/participantes', icone: 'users', acao: 'equipes.ver' },
       ],
     },
     {
