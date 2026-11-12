@@ -1669,6 +1669,28 @@ export class StoreService {
             ...registro,
             usuario_id: idsPorUsuarioSeed.get(registro.usuario_id) ?? registro.usuario_id,
           }));
+          const usuarioEscolaId = usuariosSalvos.find(
+            (usuario) => usuario.email.toLowerCase() === 'carla.diretora@escola.demo',
+          )?.id ?? idsPorUsuarioSeed.get(8) ?? 8;
+          const escolasSalvas = salvo.escolas ?? inicial.escolas;
+          const escolaDemoSeed = inicial.escolas.find((escola) => escola.cnpj === '11222333000181')!;
+          const escolaDemoExistente = escolasSalvas.find((escola) => escola.cnpj === '11222333000181');
+          const escolaDemoId = escolaDemoExistente?.id ?? (salvo.escolas
+            ? this.proximoId(escolasSalvas)
+            : escolaDemoSeed.id);
+          const escolasComDemo = escolaDemoExistente
+            ? escolasSalvas.map((escola) => escola.id === escolaDemoId
+              ? { ...escola, responsavel_usuario_id: usuarioEscolaId }
+              : escola)
+            : [...escolasSalvas, { ...escolaDemoSeed, id: escolaDemoId, responsavel_usuario_id: usuarioEscolaId }];
+          const equipesSalvas = salvo.equipes ?? inicial.equipes;
+          const equipesDemoSeed = inicial.equipes.filter((equipe) => equipe.responsavel_usuario_id === 8);
+          const equipesComDemo = equipesSalvas.map((equipe) => {
+            const equipeDemo = equipesDemoSeed.find((item) => item.id === equipe.id && item.nome === equipe.nome);
+            return equipeDemo
+              ? { ...equipe, escola_id: escolaDemoId, responsavel_usuario_id: usuarioEscolaId }
+              : equipe;
+          });
           return {
             ...inicial,
             ...salvo,
@@ -1715,6 +1737,8 @@ export class StoreService {
               };
             }),
             cargosVoluntarios: salvo.cargosVoluntarios ?? inicial.cargosVoluntarios,
+            escolas: escolasComDemo,
+            equipes: equipesComDemo,
             inscricoesVoluntarios: remapearUsuarios(salvo.inscricoesVoluntarios, inicial.inscricoesVoluntarios),
             cadastrosParticipantes: remapearUsuarios(salvo.cadastrosParticipantes, inicial.cadastrosParticipantes),
             parcerias: remapearUsuarios(salvo.parcerias, inicial.parcerias),

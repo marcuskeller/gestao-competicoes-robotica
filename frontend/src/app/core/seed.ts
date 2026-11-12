@@ -267,7 +267,23 @@ export function criarEstadoInicial(): Database {
     ativo: true,
   }));
 
-  const equipes = gerarEquipes(escolas, edicaoAtual.id);
+  const escolaDemo: Escola = {
+    id: escolas.length + 1,
+    identificador_publico: uuid(),
+    nome: 'Escola Municipal de Robótica Demo',
+    rede: 'municipal',
+    municipio: 'Joinville',
+    uf: 'SC',
+    cnpj: '11222333000181',
+    responsavel_usuario_id: 8,
+    ativo: true,
+  };
+  const equipes = gerarEquipes(escolas, edicaoAtual.id).map((equipe) =>
+    equipe.id <= 3
+      ? { ...equipe, escola_id: escolaDemo.id, responsavel_usuario_id: 8 }
+      : equipe,
+  );
+  escolas.push(escolaDemo);
 
   const participantes: Participante[] = [];
   let pid = 0;

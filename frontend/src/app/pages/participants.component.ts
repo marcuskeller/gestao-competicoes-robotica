@@ -23,8 +23,16 @@ import type { Inscricao, Modalidade, Resultado, Rede } from '../core/models';
       </p>
     }
 
+    @if (tipoEscola()) {
+      <div class="mt-6 grid w-full grid-cols-2 gap-2 sm:inline-grid sm:w-auto" role="tablist" aria-label="Área da escola">
+        <button class="tab min-h-11 h-auto whitespace-normal rounded-lg px-3 text-center leading-tight" [class.tab-active]="abaEscola() === 'cadastro'" [attr.aria-selected]="abaEscola() === 'cadastro'" role="tab" type="button" (click)="abaEscola.set('cadastro')">Cadastrar equipe</button>
+        <button class="tab min-h-11 h-auto whitespace-normal rounded-lg px-3 text-center leading-tight" [class.tab-active]="abaEscola() === 'equipes'" [attr.aria-selected]="abaEscola() === 'equipes'" role="tab" type="button" (click)="abaEscola.set('equipes')">Equipes da escola ({{ equipes().length }})</button>
+      </div>
+    }
+
     <div class="mt-6 grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-      <section class="h-fit rounded-2xl border border-base-300 bg-base-100 p-5 sm:p-6">
+      @if (!tipoEscola() || abaEscola() === 'cadastro') {
+      <section class="h-fit rounded-2xl border border-base-300 bg-base-100 p-5 sm:p-6" [style.grid-column]="tipoEscola() ? '1 / -1' : null">
         <h2 class="text-xl font-semibold">Cadastrar equipe e alunos</h2>
         <p class="mt-2 text-sm leading-6 text-base-content/65">
           Cadastre uma equipe por vez. Você poderá voltar e incluir outras equipes depois.
@@ -94,8 +102,10 @@ import type { Inscricao, Modalidade, Resultado, Rede } from '../core/models';
           <button class="btn btn-primary min-h-11 w-full" type="submit">Salvar equipe e alunos</button>
         </form>
       </section>
+      }
 
-      <section>
+      @if (!tipoEscola() || abaEscola() === 'equipes') {
+      <section [style.grid-column]="tipoEscola() ? '1 / -1' : null">
         <h2 class="text-xl font-semibold">Equipes cadastradas</h2>
         <p class="mt-1 text-sm text-base-content/60">{{ equipes().length }} equipe(s) nesta conta</p>
         <div class="mt-4 grid gap-3">
@@ -134,6 +144,7 @@ import type { Inscricao, Modalidade, Resultado, Rede } from '../core/models';
           }
         </div>
       </section>
+      }
     </div>
 
     <p class="mt-6 max-w-3xl rounded-lg bg-base-200 p-4 text-xs leading-5 text-base-content/65">
@@ -153,6 +164,7 @@ export class ParticipantsComponent {
   readonly alunosTexto = signal('');
   readonly mensagem = signal('');
   readonly resultado = signal<Resultado | null>(null);
+  readonly abaEscola = signal<'cadastro' | 'equipes'>('cadastro');
 
   readonly tipoEscola = computed(() => this.store.usuario()?.tipo_participante === 'escola');
   readonly modalidades = computed(() => this.store.db().modalidades.filter((item) => item.ativo));
@@ -164,10 +176,14 @@ export class ParticipantsComponent {
     return this.store.db().edicoes.some((edicao) => edicao.id === edicaoId && edicao.status === 'inscricoes');
   });
   readonly equipes = computed(() => {
-    const usuarioId = this.store.usuario()?.id;
+    const usuario = this.store.usuario();
     const db = this.store.db();
+    const usuarioId = usuario?.id;
+    const escolaId = usuario?.tipo_participante === 'escola'
+      ? db.escolas.find((escola) => escola.cnpj === usuario.cnpj || escola.responsavel_usuario_id === usuario.id)?.id
+      : undefined;
     return db.equipes
-      .filter((equipe) => equipe.responsavel_usuario_id === usuarioId)
+      .filter((equipe) => equipe.responsavel_usuario_id === usuarioId || (escolaId !== undefined && equipe.escola_id === escolaId))
       .map((equipe) => ({
         equipe,
         escola: db.escolas.find((item) => item.id === equipe.escola_id)?.nome ?? 'Escola',
