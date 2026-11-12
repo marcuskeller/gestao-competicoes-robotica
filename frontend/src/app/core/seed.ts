@@ -121,7 +121,7 @@ function gerarEquipes(escolas: Escola[], edicaoId: number): Equipe[] {
 
 export function criarEstadoInicial(): Database {
   const usuarios: Usuario[] = [
-    { id: 1, nome: 'Marina Coordenação', email: 'admin@arena.demo', perfil: 'administrador', tipo_conta: 'administrador', ativo: true },
+    { id: 1, nome: 'Admin', email: 'admin@arena.demo', perfil: 'administrador', tipo_conta: 'administrador', ativo: true },
     { id: 2, nome: 'Rafael Organização', email: 'organizador@arena.demo', perfil: 'organizador', tipo_conta: 'voluntario', ativo: true },
     { id: 3, nome: 'Bianca Mesária', email: 'mesario@arena.demo', perfil: 'mesario', tipo_conta: 'voluntario', ativo: true },
     { id: 4, nome: 'Paulo Homologação', email: 'homologador@arena.demo', perfil: 'homologador', tipo_conta: 'voluntario', ativo: true },

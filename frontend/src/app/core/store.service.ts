@@ -1689,6 +1689,9 @@ export class StoreService {
                   : parceriaLegada?.telefone ?? inscricaoVoluntariaLegada?.telefone;
               return {
                 ...usuario,
+                ...(usuario.email.toLowerCase() === 'admin@arena.demo' && usuario.nome.startsWith('Marina ')
+                  ? { nome: 'Admin' }
+                  : {}),
                 tipo_conta: tipoConta,
                 ...(tipoConta === 'participante'
                   ? { tipo_participante: usuario.tipo_participante ?? (cadastroLegado?.tipo === 'escola' ? 'escola' : 'pessoa_fisica') }
