@@ -28,10 +28,10 @@ const PERMISSOES_VOLUNTARIO = [
     </header>
 
     <div class="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Grupos de cadastro">
-      <button class="btn btn-sm" [class.btn-primary]="aba() === 'voluntarios'" [class.btn-ghost]="aba() !== 'voluntarios'" [attr.aria-pressed]="aba() === 'voluntarios'" (click)="aba.set('voluntarios')">Voluntários</button>
-      <button class="btn btn-sm" [class.btn-primary]="aba() === 'parcerias'" [class.btn-ghost]="aba() !== 'parcerias'" [attr.aria-pressed]="aba() === 'parcerias'" (click)="aba.set('parcerias')">Parcerias</button>
-      <button class="btn btn-sm" [class.btn-primary]="aba() === 'participantes'" [class.btn-ghost]="aba() !== 'participantes'" [attr.aria-pressed]="aba() === 'participantes'" (click)="aba.set('participantes')">Participantes</button>
-      <button class="btn btn-sm" [class.btn-primary]="aba() === 'cargos'" [class.btn-ghost]="aba() !== 'cargos'" [attr.aria-pressed]="aba() === 'cargos'" (click)="aba.set('cargos')">Cargos e vagas</button>
+      <button class="btn btn-sm min-h-11 sm:min-h-8" [class.btn-primary]="aba() === 'voluntarios'" [class.btn-ghost]="aba() !== 'voluntarios'" [attr.aria-pressed]="aba() === 'voluntarios'" (click)="aba.set('voluntarios')">Voluntários</button>
+      <button class="btn btn-sm min-h-11 sm:min-h-8" [class.btn-primary]="aba() === 'parcerias'" [class.btn-ghost]="aba() !== 'parcerias'" [attr.aria-pressed]="aba() === 'parcerias'" (click)="aba.set('parcerias')">Parcerias</button>
+      <button class="btn btn-sm min-h-11 sm:min-h-8" [class.btn-primary]="aba() === 'participantes'" [class.btn-ghost]="aba() !== 'participantes'" [attr.aria-pressed]="aba() === 'participantes'" (click)="aba.set('participantes')">Participantes</button>
+      <button class="btn btn-sm min-h-11 sm:min-h-8" [class.btn-primary]="aba() === 'cargos'" [class.btn-ghost]="aba() !== 'cargos'" [attr.aria-pressed]="aba() === 'cargos'" (click)="aba.set('cargos')">Cargos e vagas</button>
     </div>
 
     @if (mensagem()) {
@@ -54,13 +54,13 @@ const PERMISSOES_VOLUNTARIO = [
               </div>
               @if (item.inscricao?.status === 'pendente') {
                 <div class="flex shrink-0 gap-2">
-                  <button class="btn btn-primary btn-sm" (click)="avaliarVoluntario(item.inscricao!.id, 'aprovada')">Aprovar</button>
-                  <button class="btn btn-ghost btn-sm text-error" (click)="avaliarVoluntario(item.inscricao!.id, 'rejeitada')">Recusar</button>
+                  <button class="btn btn-primary btn-sm min-h-11 sm:min-h-8" (click)="avaliarVoluntario(item.inscricao!.id, 'aprovada')">Aprovar</button>
+                  <button class="btn btn-ghost btn-sm min-h-11 sm:min-h-8 text-error" (click)="avaliarVoluntario(item.inscricao!.id, 'rejeitada')">Recusar</button>
                 </div>
               }
             </div>
             <details class="mt-4 border-t border-base-300 pt-3">
-              <summary class="cursor-pointer text-sm font-medium">Permissões individuais</summary>
+              <summary class="flex min-h-11 cursor-pointer items-center text-sm font-medium">Permissões individuais</summary>
               <div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 @for (permissao of permissoesVoluntario; track permissao.chave) {
                   <label class="flex min-h-10 items-center gap-2 rounded-lg bg-base-200 px-3 py-2 text-sm">
@@ -90,8 +90,8 @@ const PERMISSOES_VOLUNTARIO = [
               </div>
               @if (item.parceria.status === 'em_analise') {
                 <div class="flex shrink-0 gap-2">
-                  <button class="btn btn-primary btn-sm" (click)="avaliarParceria(item.parceria.id, 'aprovada')">Aprovar</button>
-                  <button class="btn btn-ghost btn-sm text-error" (click)="avaliarParceria(item.parceria.id, 'recusada')">Recusar</button>
+                  <button class="btn btn-primary btn-sm min-h-11 sm:min-h-8" (click)="avaliarParceria(item.parceria.id, 'aprovada')">Aprovar</button>
+                  <button class="btn btn-ghost btn-sm min-h-11 sm:min-h-8 text-error" (click)="avaliarParceria(item.parceria.id, 'recusada')">Recusar</button>
                 </div>
               }
             </div>
@@ -120,8 +120,8 @@ const PERMISSOES_VOLUNTARIO = [
               </div>
               @if (item.cadastro.status === 'pendente') {
                 <div class="flex shrink-0 gap-2">
-                  <button class="btn btn-primary btn-sm" (click)="avaliarParticipante(item.cadastro.id, 'aprovada')">Aprovar</button>
-                  <button class="btn btn-ghost btn-sm text-error" (click)="avaliarParticipante(item.cadastro.id, 'rejeitada')">Recusar</button>
+                  <button class="btn btn-primary btn-sm min-h-11 sm:min-h-8" (click)="avaliarParticipante(item.cadastro.id, 'aprovada')">Aprovar</button>
+                  <button class="btn btn-ghost btn-sm min-h-11 sm:min-h-8 text-error" (click)="avaliarParticipante(item.cadastro.id, 'rejeitada')">Recusar</button>
                 </div>
               }
             </div>

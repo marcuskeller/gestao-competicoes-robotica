@@ -22,7 +22,12 @@ import { publicacoesPublicadas } from '../core/domain';
                 {{ snapshot.etapa.modalidade }} · {{ snapshot.etapa.nome }}
               </h2>
               <p class="mt-2 text-sm text-base-content/60">Versão {{ snapshot.versao }}</p>
-              <div class="mt-4 overflow-x-auto">
+              <div
+                class="mt-4 max-w-full overflow-x-auto overscroll-x-contain touch-pan-x"
+                role="region"
+                aria-label="Tabela de classificação"
+                tabindex="0"
+              >
                 <table class="table">
                   <thead>
                     <tr>

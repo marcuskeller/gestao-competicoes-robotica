@@ -124,7 +124,7 @@ interface GrupoNav {
           class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-base-300 bg-base-100/90 px-4 backdrop-blur sm:px-6"
         >
           <button
-            class="btn btn-ghost btn-sm btn-square lg:hidden"
+            class="btn btn-ghost btn-square size-11 p-0 lg:hidden"
             type="button"
             (click)="menuAberto.set(true)"
             aria-label="Abrir menu"
@@ -144,6 +144,18 @@ interface GrupoNav {
           <div class="ml-auto flex items-center gap-2">
             @if (store.usuario(); as usuario) {
               @if (usuario.perfil === 'administrador') {
+                <select
+                  class="select select-ghost select-xs w-24 max-w-24 sm:hidden"
+                  [value]="usuario.email"
+                  (change)="trocarPerfil($event)"
+                  aria-label="Trocar conta de demonstração"
+                >
+                  @for (u of store.db().usuarios; track u.id) {
+                    <option [value]="u.email">
+                      {{ rotuloPerfilCompacto(u.perfil) }} · {{ u.nome.split(' ')[0] }}
+                    </option>
+                  }
+                </select>
                 <div
                   class="hidden items-center gap-2 rounded-lg border border-base-300 bg-base-100 px-2 py-1 sm:flex"
                 >
@@ -175,7 +187,7 @@ interface GrupoNav {
                   </div>
                 </div>
                 <button
-                  class="btn btn-ghost btn-sm btn-square"
+                  class="btn btn-ghost btn-square size-11 p-0"
                   type="button"
                   (click)="sair()"
                   aria-label="Sair"
@@ -263,6 +275,19 @@ export class AppShellComponent {
 
   rotuloPerfil(perfil: keyof typeof PERFIS): string {
     return PERFIS[perfil].rotulo;
+  }
+
+  rotuloPerfilCompacto(perfil: keyof typeof PERFIS): string {
+    const rotulos: Record<keyof typeof PERFIS, string> = {
+      administrador: 'Admin',
+      organizador: 'Org.',
+      mesario: 'Mesa.',
+      homologador: 'Homol.',
+      voluntario: 'Vol.',
+      participante: 'Part.',
+      empresa: 'Emp.',
+    };
+    return rotulos[perfil];
   }
 
   iniciais(nome: string): string {

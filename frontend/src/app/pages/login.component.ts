@@ -17,7 +17,10 @@ const TIPOS_CONTA: { valor: TipoConta; rotulo: string }[] = [
   template: `
     <main class="grid min-h-dvh place-items-center bg-base-200 p-4 grid-pattern sm:p-6">
       <section class="w-full max-w-xl rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm sm:p-8">
-        <span class="badge badge-primary badge-outline">Campeonato Joinvilense de Robótica</span>
+        <span
+          class="badge badge-primary badge-outline h-auto min-h-6 max-w-full whitespace-normal px-2 py-1 text-center leading-4"
+          >Campeonato Joinvilense de Robótica</span
+        >
         <h1 class="mt-5 text-3xl font-semibold">Arena Robótica</h1>
         <p class="mt-2 text-base-content/65">
           Acompanhe equipes, disputas e resultados em um só lugar.
@@ -99,7 +102,8 @@ const TIPOS_CONTA: { valor: TipoConta; rotulo: string }[] = [
           <section class="mt-6" aria-labelledby="titulo-cadastro">
             <h2 id="titulo-cadastro" class="text-sm font-semibold">Criar perfil de demonstração</h2>
             <p class="mt-1 text-sm text-base-content/60">
-              Escolha se participa como administrador, voluntário ou empresa apoiadora.
+              Escolha como participa: administração, voluntariado, participante individual ou escola,
+              ou empresa apoiadora.
             </p>
 
             <form class="mt-4 grid gap-3" (submit)="cadastrar($event)">
@@ -137,7 +141,9 @@ const TIPOS_CONTA: { valor: TipoConta; rotulo: string }[] = [
                   (change)="atualizarTipoCadastro($event)"
                 >
                   @for (tipo of tiposConta; track tipo.valor) {
-                    <option [value]="tipo.valor">{{ tipo.rotulo }}</option>
+                    <option [value]="tipo.valor" [selected]="tipo.valor === tipoCadastro()">
+                      {{ tipo.rotulo }}
+                    </option>
                   }
                 </select>
               </label>
@@ -153,10 +159,15 @@ const TIPOS_CONTA: { valor: TipoConta; rotulo: string }[] = [
                   >
                     @for (cargo of cargosAbertos(); track cargo.id) {
                       <option [value]="cargo.id" [disabled]="cargo.vagas_restantes === 0">
-                        {{ cargo.nome }} · {{ cargo.vagas_restantes }} vaga(s) disponível(is)
+                        {{ cargo.nome }} · {{ cargo.vagas_restantes }} vagas
                       </option>
                     }
                   </select>
+                  @if (cargoSelecionado(); as cargo) {
+                    <span class="label-text-alt mt-1">
+                      Vagas ainda abertas para este cargo: {{ cargo.vagas_restantes }}
+                    </span>
+                  }
                 </label>
                 <label class="form-control w-full">
                   <span class="label-text mb-1 font-medium">Telefone</span>
@@ -336,6 +347,10 @@ export class LoginComponent {
       return { ...cargo, vagas_restantes: Math.max(0, cargo.vagas_total - ocupadas) };
     });
   });
+
+  readonly cargoSelecionado = computed(() =>
+    this.cargosAbertos().find((cargo) => cargo.id === this.cargoVoluntarioId()),
+  );
 
   readonly modalidades = computed(() => this.store.db().modalidades.filter((modalidade) => modalidade.ativo));
 

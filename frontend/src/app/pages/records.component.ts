@@ -95,7 +95,12 @@ import type { Resultado, StatusEdicao } from '../core/models';
           (ngModelChange)="search.set($event)"
           placeholder="Digite um nome, status ou código"
       /></label>
-      <section class="mt-4 overflow-x-auto rounded-xl border border-base-300 bg-base-100">
+      <section
+        class="mt-4 max-w-full overflow-x-auto overscroll-x-contain touch-pan-x rounded-xl border border-base-300 bg-base-100"
+        role="region"
+        [attr.aria-label]="'Tabela: ' + config().title"
+        tabindex="0"
+      >
         <table class="table">
           <caption class="sr-only">
             {{
