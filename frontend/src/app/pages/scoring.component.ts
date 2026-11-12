@@ -2,11 +2,12 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { StoreService } from '../core/store.service';
+import { TeamDetailsComponent } from '../shared/team-details.component';
 import type { Resultado } from '../core/models';
 
 @Component({
   selector: 'app-scoring',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, TeamDetailsComponent],
   template: `
     <a routerLink="/app/disputas" class="btn btn-ghost btn-sm mb-5">← Disputas</a>
     @if (match(); as disputa) {
@@ -33,7 +34,7 @@ import type { Resultado } from '../core/models';
       <div class="grid gap-6 mt-6 lg:grid-cols-2">
         @for (id of [disputa.equipe_a_id, disputa.equipe_b_id]; track id) {
           <form class="rounded-xl border border-base-300 bg-base-100 p-6" (ngSubmit)="save(id)">
-            <h2 class="text-xl font-semibold">{{ team(id) }}</h2>
+            <h2><app-team-details [equipeId]="id" [equipeNome]="team(id)" classe="link link-primary text-left text-xl font-semibold" /></h2>
             <fieldset
               [disabled]="locked() || !store.podeFazer('resultado.lancar')"
               class="mt-4 grid gap-4"

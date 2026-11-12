@@ -5,13 +5,14 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { StoreService } from '../core/store.service';
 import { calcularClassificacao } from '../core/domain';
 import { StatusBadgeComponent } from '../shared/status-badge.component';
+import { TeamDetailsComponent } from '../shared/team-details.component';
 import { moduleConfig, type ModuleKey } from './records.config';
 import { RecordFormComponent } from './record-form.component';
 import type { Resultado, StatusEdicao } from '../core/models';
 
 @Component({
   selector: 'app-records',
-  imports: [FormsModule, RouterLink, StatusBadgeComponent, RecordFormComponent],
+  imports: [FormsModule, RouterLink, StatusBadgeComponent, TeamDetailsComponent, RecordFormComponent],
   template: `
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
@@ -122,14 +123,24 @@ import type { Resultado, StatusEdicao } from '../core/models';
                   <td class="max-w-sm whitespace-normal break-words">
                     @if (column.key === 'status') {
                       <app-status-badge [status]="display(row[column.key])" />
-                  } @else if (module() === 'inscricoes' && column.key === 'equipe') {
-                    <button
-                      class="link link-primary text-left"
-                      type="button"
-                      (click)="abrirDetalhesInscricao(number(row['id']))"
-                    >
-                      {{ display(row[column.key]) }}
-                    </button>
+                    } @else if (module() === 'disputas' && column.key === 'confronto') {
+                      <div class="flex flex-wrap items-center gap-1">
+                        <app-team-details [equipeId]="number(row['equipe_a_id'])" [equipeNome]="equipe(number(row['equipe_a_id']))" />
+                        <span aria-hidden="true">×</span>
+                        <app-team-details [equipeId]="number(row['equipe_b_id'])" [equipeNome]="equipe(number(row['equipe_b_id']))" />
+                      </div>
+                    } @else if (module() === 'equipes' && column.key === 'nome') {
+                      <app-team-details [equipeId]="number(row['id'])" [equipeNome]="display(row[column.key])" />
+                    } @else if (
+                      ['inscricoes', 'participantes', 'resultados', 'classificacao'].includes(module()) &&
+                      ['equipe', 'equipe_nome'].includes(column.key) &&
+                      row['equipe_id'] !== undefined
+                    ) {
+                      <app-team-details
+                        [equipeId]="number(row['equipe_id'])"
+                        [equipeNome]="display(row[column.key])"
+                        [inscricaoId]="module() === 'inscricoes' ? number(row['id']) : undefined"
+                      />
                     } @else {
                       {{ display(row[column.key]) }}
                     }
@@ -259,57 +270,6 @@ import type { Resultado, StatusEdicao } from '../core/models';
       <p class="mt-3 text-xs text-base-content/50">
         {{ filteredRows().length }} registro(s) · Dados de demonstração neste navegador.
       </p>
-      @if (detalhesInscricao(); as detalhes) {
-        <div class="modal modal-open" role="dialog" aria-modal="true" aria-labelledby="titulo-detalhes-equipe">
-          <div class="modal-box max-h-[90vh] max-w-2xl overflow-y-auto">
-            <div class="flex items-start justify-between gap-4">
-              <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-primary">Detalhes da inscrição</p>
-                <h2 id="titulo-detalhes-equipe" class="mt-1 text-2xl font-semibold">{{ detalhes.equipe.nome }}</h2>
-              </div>
-              <button class="btn btn-ghost btn-sm" type="button" (click)="fecharDetalhesInscricao()">Fechar</button>
-            </div>
-
-            <dl class="mt-5 grid gap-3 rounded-xl bg-base-200 p-4 sm:grid-cols-2">
-              <div>
-                <dt class="text-xs uppercase tracking-wide text-base-content/60">Escola</dt>
-                <dd class="mt-1 font-medium">{{ detalhes.escola }}</dd>
-              </div>
-              <div>
-                <dt class="text-xs uppercase tracking-wide text-base-content/60">Modalidade</dt>
-                <dd class="mt-1 font-medium">{{ detalhes.modalidade }}</dd>
-              </div>
-              <div>
-                <dt class="text-xs uppercase tracking-wide text-base-content/60">Status da inscrição</dt>
-                <dd class="mt-1"><app-status-badge [status]="detalhes.inscricao.status" /></dd>
-              </div>
-              <div>
-                <dt class="text-xs uppercase tracking-wide text-base-content/60">Código</dt>
-                <dd class="mt-1 font-medium">{{ detalhes.inscricao.identificador_publico }}</dd>
-              </div>
-            </dl>
-
-            <section class="mt-6" aria-labelledby="titulo-integrantes-equipe">
-              <h3 id="titulo-integrantes-equipe" class="text-lg font-semibold">Integrantes da equipe ({{ detalhes.integrantes.length }})</h3>
-              @if (detalhes.integrantes.length) {
-                <ul class="mt-3 divide-y divide-base-300 rounded-xl border border-base-300">
-                  @for (integrante of detalhes.integrantes; track integrante.id) {
-                    <li class="flex flex-wrap items-center justify-between gap-2 p-4">
-                      <span class="font-medium">{{ integrante.nome }}</span>
-                      <span class="text-sm text-base-content/65">{{ papelParticipante(integrante.papel) }} · {{ integrante.serie || 'Série não informada' }}</span>
-                    </li>
-                  }
-                </ul>
-              } @else {
-                <p class="mt-3 rounded-xl border border-dashed border-base-300 p-4 text-sm text-base-content/65">
-                  Nenhum integrante foi cadastrado para esta equipe.
-                </p>
-              }
-            </section>
-          </div>
-          <button class="modal-backdrop" type="button" aria-label="Fechar detalhes da equipe" (click)="fecharDetalhesInscricao()"></button>
-        </div>
-      }
     }
     @if (reasonAction()) {
       <form
@@ -343,23 +303,6 @@ export class RecordsComponent {
   readonly module = computed(() => this.routeData()?.['modulo'] as ModuleKey);
   readonly config = computed(() => moduleConfig(this.module()));
   readonly search = signal('');
-  readonly inscricaoDetalhesId = signal<number | null>(null);
-  readonly detalhesInscricao = computed(() => {
-    const id = this.inscricaoDetalhesId();
-    if (id === null) return null;
-    const db = this.store.db();
-    const inscricao = db.inscricoes.find((item) => item.id === id);
-    if (!inscricao) return null;
-    const equipe = db.equipes.find((item) => item.id === inscricao.equipe_id);
-    if (!equipe) return null;
-    return {
-      inscricao,
-      equipe,
-      escola: db.escolas.find((item) => item.id === equipe.escola_id)?.nome ?? 'Escola não informada',
-      modalidade: db.modalidades.find((item) => item.id === inscricao.modalidade_id)?.nome ?? 'Modalidade não informada',
-      integrantes: db.participantes.filter((item) => item.equipe_id === equipe.id),
-    };
-  });
   readonly formOpen = signal(false);
   readonly message = signal<Resultado | null>(null);
   readonly stageId = signal(this.store.db().etapas[0]?.id ?? 0);
@@ -422,15 +365,6 @@ export class RecordsComponent {
   }
   number(value: unknown): number {
     return Number(value);
-  }
-  abrirDetalhesInscricao(id: number): void {
-    this.inscricaoDetalhesId.set(id);
-  }
-  fecharDetalhesInscricao(): void {
-    this.inscricaoDetalhesId.set(null);
-  }
-  papelParticipante(papel: string): string {
-    return { capitao: 'Capitão/Capitã', integrante: 'Integrante', tecnico: 'Técnico(a)' }[papel] ?? papel;
   }
   equipe(id: number): string {
     return this.store.db().equipes.find((e) => e.id === id)?.nome ?? '—';

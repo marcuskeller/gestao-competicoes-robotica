@@ -152,39 +152,6 @@ interface GrupoNav {
 
           <div class="ml-auto flex items-center gap-2">
             @if (store.usuario(); as usuario) {
-              @if (usuario.perfil === 'administrador') {
-                <select
-                  class="select select-ghost select-xs w-24 max-w-24 sm:hidden"
-                  [value]="usuario.email"
-                  (change)="trocarPerfil($event)"
-                  aria-label="Trocar conta de demonstração"
-                >
-                  @for (u of store.db().usuarios; track u.id) {
-                    <option [value]="u.email">
-                      {{ rotuloPerfilCompacto(u.perfil) }} · {{ u.nome.split(' ')[0] }}
-                    </option>
-                  }
-                </select>
-                <div
-                  class="hidden items-center gap-2 rounded-lg border border-base-300 bg-base-100 px-2 py-1 sm:flex"
-                >
-                  <span class="text-[11px] font-medium uppercase tracking-wide text-base-content/40"
-                    >Trocar conta demo</span
-                  >
-                  <select
-                    class="select select-ghost select-xs w-48 font-medium"
-                    [value]="usuario.email"
-                    (change)="trocarPerfil($event)"
-                    aria-label="Trocar conta de demonstração"
-                  >
-                    @for (u of store.db().usuarios; track u.id) {
-                      <option [value]="u.email">
-                        {{ rotuloPerfil(u.perfil) }} — {{ u.nome.split(' ')[0] }}
-                      </option>
-                    }
-                  </select>
-                </div>
-              }
               <div class="flex items-center gap-2.5">
                 <a
                   routerLink="/app/minha-conta"
@@ -293,19 +260,6 @@ export class AppShellComponent {
     return PERFIS[perfil].rotulo;
   }
 
-  rotuloPerfilCompacto(perfil: keyof typeof PERFIS): string {
-    const rotulos: Record<keyof typeof PERFIS, string> = {
-      administrador: 'Admin',
-      organizador: 'Org.',
-      mesario: 'Mesa.',
-      homologador: 'Homol.',
-      voluntario: 'Vol.',
-      participante: 'Part.',
-      empresa: 'Emp.',
-    };
-    return rotulos[perfil];
-  }
-
   iniciais(nome: string): string {
     return nome
       .split(' ')
@@ -314,12 +268,6 @@ export class AppShellComponent {
       .map((parte) => parte[0])
       .join('')
       .toUpperCase();
-  }
-
-  trocarPerfil(evento: Event): void {
-    const email = (evento.target as HTMLSelectElement).value;
-    this.store.entrar(email);
-    this.router.navigate(['/app/dashboard']);
   }
 
   sair(): void {

@@ -2,11 +2,12 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { StoreService } from '../core/store.service';
+import { TeamDetailsComponent } from '../shared/team-details.component';
 import type { Inscricao, Modalidade, Resultado, Rede } from '../core/models';
 
 @Component({
   selector: 'app-participants',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, TeamDetailsComponent],
   template: `
     <header>
       <p class="text-sm font-semibold text-primary">ÁREA DE PARTICIPANTES</p>
@@ -102,7 +103,7 @@ import type { Inscricao, Modalidade, Resultado, Rede } from '../core/models';
             <article class="rounded-xl border border-base-300 bg-base-100 p-4 sm:p-5">
               <div class="flex flex-wrap items-start justify-between gap-2">
                 <div class="min-w-0">
-                  <h3 class="font-semibold">{{ item.equipe.nome }}</h3>
+                  <h3><app-team-details [equipeId]="item.equipe.id" [equipeNome]="item.equipe.nome" classe="link link-primary text-left font-semibold" /></h3>
                   <p class="mt-1 text-sm text-base-content/65">{{ item.escola }} · {{ item.modalidade?.nome ?? 'Modalidade não definida' }}</p>
                 </div>
                 <span class="badge badge-outline">{{ statusInscricao(item.inscricao) }}</span>
