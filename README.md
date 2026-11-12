@@ -33,3 +33,8 @@ backend e persistência compartilhada continuam pendentes.
 
 Consulte [frontend/README.md](frontend/README.md) para estrutura, rotas,
 roteiro de demonstração e limitações.
+
+## Teste de sincronizacao
+
+Commit de teste para validar o fluxo GitHub → Vercel.
+
