@@ -1692,6 +1692,9 @@ export class StoreService {
                 ...(usuario.email.toLowerCase() === 'admin@arena.demo' && usuario.nome.startsWith('Marina ')
                   ? { nome: 'Admin' }
                   : {}),
+                ...(usuario.email.toLowerCase() === 'ana@tecnologia.demo' && usuario.nome === 'Ana Parceira'
+                  ? { nome: 'SENAI', organizacao: 'SENAI' }
+                  : {}),
                 tipo_conta: tipoConta,
                 ...(tipoConta === 'participante'
                   ? { tipo_participante: usuario.tipo_participante ?? (cadastroLegado?.tipo === 'escola' ? 'escola' : 'pessoa_fisica') }

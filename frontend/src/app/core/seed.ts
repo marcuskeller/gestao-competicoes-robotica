@@ -126,7 +126,7 @@ export function criarEstadoInicial(): Database {
     { id: 3, nome: 'Bianca Mesária', email: 'mesario@arena.demo', perfil: 'mesario', tipo_conta: 'voluntario', ativo: true },
     { id: 4, nome: 'Paulo Homologação', email: 'homologador@arena.demo', perfil: 'homologador', tipo_conta: 'voluntario', ativo: true },
     { id: 5, nome: 'Julia Mentora', email: 'julia.mentora@arena.demo', perfil: 'voluntario', tipo_conta: 'voluntario', ativo: true },
-    { id: 6, nome: 'Ana Parceira', email: 'ana@tecnologia.demo', perfil: 'empresa', tipo_conta: 'empresa', organizacao: 'Tecnologia Joinville Demo', ativo: true },
+    { id: 6, nome: 'SENAI', email: 'ana@tecnologia.demo', perfil: 'empresa', tipo_conta: 'empresa', organizacao: 'SENAI', ativo: true },
     { id: 7, nome: 'Lucas Estudante', email: 'lucas.estudante@arena.demo', perfil: 'participante', tipo_conta: 'participante', tipo_participante: 'pessoa_fisica', telefone: '(47) 90000-0201', ativo: true },
     { id: 8, nome: 'Carla Diretora', email: 'carla.diretora@escola.demo', perfil: 'participante', tipo_conta: 'participante', tipo_participante: 'escola', organizacao: 'Escola Municipal de Robótica Demo', cnpj: '11222333000181', telefone: '(47) 90000-0202', ativo: true },
   ];

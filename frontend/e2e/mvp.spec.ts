@@ -207,7 +207,7 @@ test('administra usuários por categoria, cargos, vagas e permissões', async ({
   await login(page);
   await page.goto('/app/usuarios');
   await page.getByRole('button', { name: 'Parcerias' }).click();
-  await expect(page.getByText('Tecnologia Joinville Demo')).toBeVisible();
+  await expect(page.getByText('SENAI')).toBeVisible();
   await page.getByRole('button', { name: 'Participantes' }).click();
   const escolaParceira = page.locator('article').filter({ hasText: 'Escola / CNPJ' });
   await expect(escolaParceira.getByRole('heading', { name: 'Escola Municipal de Robótica Demo' })).toBeVisible();
