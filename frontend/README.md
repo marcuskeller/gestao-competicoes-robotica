@@ -24,6 +24,10 @@ Na tela de entrada, selecione o tipo de pessoa para filtrar as contas de demonst
 clique na conta desejada para entrar. Não há senha. Os usuários e registros abaixo são
 criados pela seed local em `src/app/core/seed.ts`:
 
+> **Privacidade:** embora contas e estudantes de demonstração usem dados de exemplo,
+> a seed inclui nomes identificáveis de escolas. Troque-os por dados fictícios ou
+> anonimizados antes de apresentar publicamente, conforme o regulamento.
+
 | Tipo | Conta de demonstração | Cenários disponíveis |
 | --- | --- | --- |
 | Administração | `admin@arena.demo` — Marina Coordenação | Gestão completa, permissões, cargos e vagas |

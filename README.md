@@ -30,14 +30,11 @@ chaveamento por grupos, pontuação, classificação, homologação, publicaçã
 retificação, auditoria e portal público. Dados fictícios salvos em `localStorage`;
 backend e persistência compartilhada continuam pendentes.
 
+**Atenção:** a seed atual contém nomes identificáveis de escolas. Substitua-os por exemplos fictícios ou anonimizados antes de uma demonstração pública, conforme o regulamento do hackathon.
+
 Consulte [frontend/README.md](frontend/README.md) para estrutura, rotas,
 roteiro de demonstração e limitações.
 
 O plano mestre reúne tecnologias, arquitetura, opção gratuita, AWS paga, custos
 e roadmap dos próximos seis meses em um único documento:
 [PLANO-MVP-GESTAO-COMPETICOES.md](docs/PLANO-MVP-GESTAO-COMPETICOES.md).
-
-## Teste de sincronizacao
-
-Commit de teste para validar o fluxo GitHub → Vercel.
-

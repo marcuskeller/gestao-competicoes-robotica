@@ -14,6 +14,7 @@
 |---|---|---|
 | Frontend | **Angular + TypeScript**, standalone e Signals | Aplicação atual; interface responsiva por perfil. |
 | Interface visual | **Tailwind CSS + DaisyUI** | Estilos e componentes para desktop e mobile. |
+| Ícones | **Lucide** | Escolha para padronizar ícones SVG nas próximas melhorias; o protótipo ainda usa o componente SVG próprio `app-icon`, sem dependência Lucide instalada. |
 | API | **Kotlin + Spring Boot**, REST/JSON em `/api/v1` | Backend escolhido; regras e validações no servidor. |
 | Autenticação | **Spring Security** | Autenticar usuários e aplicar permissões no servidor; decidir sessão/token antes da implementação. |
 | Persistência | **PostgreSQL + Spring Data JPA + Flyway** | Banco relacional e migrations versionadas; produção em Amazon RDS. |
@@ -70,6 +71,20 @@
 | Snapshots | API grava versões no banco | Preservar resultados oficiais publicados. |
 | GitHub Actions + OIDC | Deploy autenticado para AWS | Publicar sem chaves permanentes no GitHub. |
 | CloudWatch | Recebe logs/métricas dos serviços | Alarmes e diagnóstico operacional. |
+
+### Modelo de dados do protótipo
+
+| Entidade | Relações principais | Observação |
+|---|---|---|
+| Edição | Possui modalidades, regras, equipes, inscrições e etapas. | `identificador_publico` estável permite referência entre domínios. |
+| Escola | Pode estar ligada a uma conta responsável e a equipes. | Integração com cadastro institucional é futura e depende de acordo. |
+| Equipe | Pertence a edição e escola; pode ter modalidade e participantes. | Identificador público UUID previsto para interoperabilidade. |
+| Inscrição | Relaciona equipe, modalidade e edição; registra avaliação e justificativa. | Estados previstos: submetida, em análise, aprovada, rejeitada ou cancelada. |
+| Etapa e disputa | Etapa contém grupos e disputas; disputa referencia equipes. | Chaveamento e execução pertencem ao domínio competitivo. |
+| Resultado e critério | Resultado é da disputa/equipe; pontuações detalham critérios. | Mantém valores, penalidades, autor e horário do registro. |
+| Publicação | Relaciona edição, etapa e modalidade; guarda snapshot versionado. | Portal público consome apenas snapshots publicados. |
+| Usuário e auditoria | Usuário possui perfis/permissões; log registra operações. | No protótipo, persistem apenas localmente; IDs numéricos devem migrar para UUID/PK do banco. |
+| Estado de implementação | Tipos e relações estão descritos em `frontend/src/app/core/models.ts`. | Modelo conceitual/prototípico; não existe schema SQL ou migration nesta entrega frontend. |
 
 ### Módulos de domínio
 
@@ -199,7 +214,7 @@
 | Problema priorizado, público-alvo e justificativa | Seção 2: problema, atores, prioridade e impacto a medir. | Documentado. |
 | Proposta, escopo e fluxo principal | Seção 2 e jornada de edição a publicação. | Documentado. |
 | UX e MVP demonstrável com dados de teste | Frontend Angular, seeds, fluxo em `frontend/README.md`; build e 12/12 testes e2e passaram. | Demonstrável; anonimização das escolas seed permanece pendente antes de demo pública. |
-| Arquitetura e modelo de dados | Seções 1 e 3; tipos TypeScript em `frontend/src/app/core/models.ts`. | Parcial: modelo do protótipo existe; schema/migrations de backend ficam para depois. |
+| Arquitetura e modelo de dados | Seções 1 e 3; entidades e relações resumidas a partir de `frontend/src/app/core/models.ts`. | Documentado no nível conceitual; schema SQL e migrations ficam para depois do protótipo. |
 | Interoperabilidade e fontes compartilhadas | Seção 3: produtores, consumidores, fontes da verdade e contrato futuro. | Documentado como proposta; integração não implementada nem exigida no evento. |
 | Repositório, README, limitações e backlog | Git, `README.md`, `frontend/README.md` e backlog da seção 6. | Documentado; testes e caminhos de execução foram conferidos. |
 | Uso de ferramentas de IA | Declaração na tabela abaixo. | Documentado; equipe deve validar e responder pelas entregas. |
