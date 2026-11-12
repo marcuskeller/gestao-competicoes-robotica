@@ -18,6 +18,27 @@ O login seleciona uma conta fictícia, sem senha. Os dados ficam em `localStorag
 não existe autenticação de servidor, banco compartilhado ou API nesta entrega.
 Uma janela anônima inicia sua própria base de demonstração.
 
+### Contas e dados fictícios para testar
+
+Na tela de entrada, selecione o tipo de pessoa para filtrar as contas de demonstração;
+clique na conta desejada para entrar. Não há senha. Os usuários e registros abaixo são
+criados pela seed local em `src/app/core/seed.ts`:
+
+| Tipo | Conta de demonstração | Cenários disponíveis |
+| --- | --- | --- |
+| Administração | `admin@arena.demo` — Marina Coordenação | Gestão completa, permissões, cargos e vagas |
+| Voluntariado | `organizador@arena.demo` — Rafael Organização | Cargo aprovado de mentoria |
+| Voluntariado | `mesario@arena.demo` — Bianca Mesária | Cargo de mesário e permissões limitadas |
+| Voluntariado | `homologador@arena.demo` — Paulo Homologação | Homologação e auditoria |
+| Voluntariado | `julia.mentora@arena.demo` — Julia Mentora | Inscrição pendente para montagem de arena |
+| Participante individual | `lucas.estudante@arena.demo` — Lucas Estudante | Inscrição individual pendente, com responsável fictício |
+| Escola participante | `carla.diretora@escola.demo` — Carla Diretora | CNPJ fictício, equipe e estudantes fictícios |
+| Empresa apoiadora | `ana@tecnologia.demo` — Ana Parceira | Proposta fictícia de apoio de R$ 5.000 em análise |
+
+As contas podem ser alternadas pelo seletor no cabeçalho. Para repetir um cenário do zero,
+limpe os dados do site no navegador ou abra uma janela anônima; os cadastros criados nos
+testes ficam apenas no armazenamento local daquele navegador.
+
 ## Estrutura do MVP
 
 ```text
@@ -26,7 +47,11 @@ src/app/
   layouts/       shell responsivo, menu e seletor de perfil
   pages/
     login.component.ts       entrada por perfil de demonstração
-    overview.component.ts    indicadores e atalhos
+    overview.component.ts    jornada principal, pendências e etapas da edição
+    volunteer.component.ts  acompanhamento do cargo e acessos voluntários
+    participants.component.ts área de inscrição de pessoa física/escola
+    partners.component.ts   acompanhamento de proposta da empresa
+    users.component.ts      usuários, permissões, cargos e vagas (administração)
     records.config.ts        definição dos módulos e colunas
     records.component.ts     consultas, filtros e ações de workflow
     record-form.component.ts formulários de cadastro dos módulos
@@ -38,12 +63,19 @@ e2e/             testes no navegador
 
 ## Rotas do MVP
 
-`/` redireciona ao painel ou ao login. `/publico` não exige login.
+`/` redireciona à área da conta ou ao login. `/publico` não exige login.
 `/app/dashboard` é o painel. Os módulos ficam em `/app/edicoes`, `/app/modalidades`,
 `/app/criterios`, `/app/desempates`, `/app/regras`, `/app/escolas`, `/app/equipes`,
 `/app/participantes`, `/app/inscricoes`, `/app/etapas`, `/app/disputas`,
 `/app/resultados`, `/app/classificacao`, `/app/publicacao`, `/app/auditoria`
 e `/app/interop`. `/app/pontuar/:id` abre a súmula da disputa.
+As áreas por conta ficam em `/app/voluntario`, `/app/participante` e `/app/parceiros`;
+`/app/usuarios` administra listas, permissões e vagas voluntárias.
+
+O cadastro demo aceita Administração, Voluntariado, Participante/Escola e Empresa apoiadora.
+As vagas voluntárias são limitadas pelo total configurado. Escolas cadastram CNPJ, modalidade,
+equipe e estudantes; empresas enviam uma proposta de apoio financeiro. As propostas não geram
+cobrança ou pagamento.
 
 ## Fluxo de demonstração
 

@@ -1,5 +1,5 @@
 import { computed, effect, Injectable, signal } from '@angular/core';
-import { montarSnapshot, pontosPorCriterios, publicacaoVigente } from './domain';
+import { cnpjValido, montarSnapshot, pontosPorCriterios, publicacaoVigente } from './domain';
 import type {
   CriterioPontuacao,
   Database,
@@ -9,11 +9,13 @@ import type {
   Escola,
   Equipe,
   Inscricao,
+  Perfil,
   Participante,
   Resultado,
   StatusEdicao,
   StatusEtapa,
   StatusPublicacao,
+  TipoConta,
   Usuario,
 } from './models';
 import { AVISO_SEM_PERMISSAO, pode } from './permissions';
@@ -59,7 +61,12 @@ export class StoreService {
   }
 
   podeFazer(acao: string): boolean {
-    return pode(this.perfil(), acao);
+    const usuario = this.usuario();
+    if (!usuario) return false;
+    if (usuario.perfil === 'administrador') return true;
+    if (usuario.tipo_conta === 'voluntario' && acao === 'voluntario.portal') return true;
+    if (usuario.permissoes !== undefined) return usuario.permissoes.includes(acao);
+    return pode(usuario.perfil, acao);
   }
 
   entrar(email: string): Resultado {
@@ -79,6 +86,300 @@ export class StoreService {
       }),
     );
     return { ok: true, id: usuario.id };
+  }
+
+  cadastrarContaDemo(dados: {
+    nome: string;
+    email: string;
+    tipo_conta: TipoConta;
+    organizacao?: string;
+    telefone?: string;
+    disponibilidade?: string;
+    cargo_voluntario_id?: number;
+    tipo_participante?: 'pessoa_fisica' | 'escola';
+    nome_escola?: string;
+    serie?: string;
+    responsavel?: string;
+    telefone_responsavel?: string;
+    modalidade_id?: number;
+    equipe_nome?: string;
+    nome_equipe?: string;
+    alunos?: { nome: string; serie: string }[];
+    cnpj?: string;
+    valor_proposto?: number;
+    mensagem?: string;
+  }): Resultado {
+    const nome = dados.nome.trim();
+    const email = dados.email.trim().toLowerCase();
+    const organizacao = dados.organizacao?.trim() ?? '';
+    const telefone = dados.telefone?.trim() ?? '';
+    const cnpj = dados.cnpj?.replace(/\D/g, '') ?? '';
+
+    if (!nome) return { ok: false, erro: 'Informe seu nome.' };
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return { ok: false, erro: 'Informe um e-mail válido.' };
+    }
+
+    const db = this._db();
+    if (db.usuarios.some((usuario) => usuario.email.toLowerCase() === email)) {
+      return { ok: false, erro: 'Já existe uma conta com este e-mail neste navegador.' };
+    }
+
+    let perfil: Perfil;
+    if (dados.tipo_conta === 'administrador') perfil = 'administrador';
+    else if (dados.tipo_conta === 'voluntario') {
+      const cargo = db.cargosVoluntarios?.find(
+        (item) => item.id === Number(dados.cargo_voluntario_id) && item.ativo,
+      );
+      if (!cargo) return { ok: false, erro: 'Selecione um cargo voluntário disponível.' };
+      const ocupadas = (db.inscricoesVoluntarios ?? []).filter(
+        (inscricao) =>
+          inscricao.cargo_id === cargo.id && inscricao.status !== 'rejeitada',
+      ).length;
+      if (ocupadas >= cargo.vagas_total) return { ok: false, erro: 'As vagas deste cargo foram preenchidas.' };
+      if (!telefone || !dados.disponibilidade?.trim()) {
+        return { ok: false, erro: 'Informe telefone e disponibilidade para atuar.' };
+      }
+      perfil = 'voluntario';
+    } else if (dados.tipo_conta === 'participante') {
+      const modalidade = db.modalidades.find((item) => item.id === Number(dados.modalidade_id));
+      if (!modalidade) return { ok: false, erro: 'Selecione uma modalidade.' };
+      if (dados.tipo_participante === 'pessoa_fisica') {
+        if (
+          !dados.nome_escola?.trim() ||
+          !dados.serie?.trim() ||
+          !dados.responsavel?.trim() ||
+          !dados.telefone_responsavel?.trim()
+        ) {
+          return { ok: false, erro: 'Informe escola, série e contato do responsável.' };
+        }
+      } else {
+        if (!cnpjValido(cnpj)) return { ok: false, erro: 'Informe um CNPJ válido para a escola.' };
+        if (!organizacao || !telefone || !dados.nome_equipe?.trim()) {
+          return { ok: false, erro: 'Informe CNPJ, escola, telefone e nome da equipe.' };
+        }
+        if ((dados.alunos?.length ?? 0) < modalidade.min_integrantes) {
+          return {
+            ok: false,
+            erro: `Esta modalidade exige pelo menos ${modalidade.min_integrantes} integrantes.`,
+          };
+        }
+        if ((dados.alunos?.length ?? 0) > modalidade.max_integrantes) {
+          return {
+            ok: false,
+            erro: `Esta modalidade permite até ${modalidade.max_integrantes} integrantes.`,
+          };
+        }
+      }
+      perfil = 'participante';
+    } else {
+      if (!organizacao || !telefone) {
+        return { ok: false, erro: 'Informe empresa e telefone de contato.' };
+      }
+      if (!cnpjValido(cnpj)) {
+        return { ok: false, erro: 'Informe um CNPJ válido.' };
+      }
+      if (Number(dados.valor_proposto) <= 0 || !Number.isFinite(Number(dados.valor_proposto))) {
+        return { ok: false, erro: 'Informe um valor de apoio maior que zero.' };
+      }
+      perfil = 'empresa';
+    }
+
+    if (dados.tipo_conta === 'empresa' || (dados.tipo_conta === 'participante' && dados.tipo_participante === 'escola')) {
+      const documentoDuplicado = (db.parcerias ?? []).some((item) => item.cnpj === cnpj) ||
+        (db.cadastrosParticipantes ?? []).some((item) => item.tipo === 'escola' && item.cnpj === cnpj);
+      if (documentoDuplicado) return { ok: false, erro: 'Já existe um cadastro com este CNPJ.' };
+    }
+
+    const usuario: Usuario = {
+      id: this.proximoId(db.usuarios),
+      nome,
+      email,
+      perfil,
+      tipo_conta: dados.tipo_conta,
+      ...(organizacao ? { organizacao } : {}),
+      ativo: true,
+    };
+    const usuario_id = usuario.id;
+    let proximo = {
+      ...db,
+      usuarios: [...db.usuarios, usuario],
+      usuarioAtualId: usuario.id,
+    };
+    if (dados.tipo_conta === 'voluntario') {
+      proximo = {
+        ...proximo,
+        inscricoesVoluntarios: [
+          ...(db.inscricoesVoluntarios ?? []),
+          {
+            id: this.proximoId(db.inscricoesVoluntarios ?? []),
+            usuario_id,
+            cargo_id: Number(dados.cargo_voluntario_id),
+            telefone,
+            disponibilidade: dados.disponibilidade!.trim(),
+            status: 'pendente' as const,
+          },
+        ],
+      };
+    }
+    if (dados.tipo_conta === 'participante') {
+      const inscricao = dados.tipo_participante === 'escola'
+        ? {
+            id: this.proximoId(db.cadastrosParticipantes ?? []), usuario_id,
+            tipo: 'escola' as const, cnpj, nome_escola: organizacao, telefone,
+            nome_equipe: dados.nome_equipe!.trim(), modalidade_id: Number(dados.modalidade_id),
+            alunos: dados.alunos ?? [], status: 'pendente' as const,
+          }
+        : {
+            id: this.proximoId(db.cadastrosParticipantes ?? []), usuario_id,
+            tipo: 'pessoa_fisica' as const, nome_escola: dados.nome_escola!.trim(),
+            serie: dados.serie!.trim(), responsavel: dados.responsavel!.trim(),
+            telefone_responsavel: dados.telefone_responsavel!.trim(),
+            modalidade_id: Number(dados.modalidade_id), equipe_nome: dados.equipe_nome?.trim() ?? '',
+            status: 'pendente' as const,
+          };
+      proximo = { ...proximo, cadastrosParticipantes: [...(db.cadastrosParticipantes ?? []), inscricao] };
+    }
+    if (dados.tipo_conta === 'empresa') {
+      proximo = {
+        ...proximo,
+        parcerias: [
+          ...(db.parcerias ?? []),
+          {
+            id: this.proximoId(db.parcerias ?? []), usuario_id, cnpj, telefone,
+            valor_proposto: Number(dados.valor_proposto), mensagem: dados.mensagem?.trim() ?? '',
+            status: 'em_analise' as const,
+          },
+        ],
+      };
+    }
+    this._db.set(
+      this.comLog(proximo, {
+        tabela: 'users',
+        registro_id: usuario.id,
+        acao: 'cadastro_demo',
+        novo: { email, tipo_conta: dados.tipo_conta, perfil, organizacao: organizacao || null },
+      }),
+    );
+    return { ok: true, id: usuario.id };
+  }
+
+  atualizarPermissoesUsuario(usuarioId: number, permissoes: string[]): Resultado {
+    if (this.perfil() !== 'administrador') return { ok: false, erro: AVISO_SEM_PERMISSAO };
+    const db = this._db();
+    const usuario = db.usuarios.find((item) => item.id === usuarioId);
+    if (!usuario || usuario.perfil === 'administrador') {
+      return { ok: false, erro: 'Não é possível alterar este perfil.' };
+    }
+    const lista = [...new Set(permissoes)];
+    const proximo = {
+      ...db,
+      usuarios: db.usuarios.map((item) => item.id === usuarioId ? { ...item, permissoes: lista } : item),
+    };
+    this._db.set(this.comLog(proximo, {
+      tabela: 'users', registro_id: usuarioId, acao: 'permissoes_atualizadas',
+      anterior: usuario.permissoes ?? null, novo: lista,
+    }));
+    return { ok: true, id: usuarioId };
+  }
+
+  criarCargoVoluntario(dados: { nome: string; descricao: string; vagas_total: number }): Resultado {
+    if (this.perfil() !== 'administrador') return { ok: false, erro: AVISO_SEM_PERMISSAO };
+    const nome = dados.nome.trim();
+    const vagas = Number(dados.vagas_total);
+    if (!nome || !Number.isInteger(vagas) || vagas < 1) {
+      return { ok: false, erro: 'Informe o cargo e pelo menos uma vaga.' };
+    }
+    const db = this._db();
+    if (db.cargosVoluntarios.some((cargo) => cargo.nome.toLowerCase() === nome.toLowerCase())) {
+      return { ok: false, erro: 'Este cargo já existe.' };
+    }
+    const cargo = { id: this.proximoId(db.cargosVoluntarios), nome, descricao: dados.descricao.trim(), vagas_total: vagas, ativo: true };
+    const proximo = { ...db, cargosVoluntarios: [...db.cargosVoluntarios, cargo] };
+    this._db.set(this.comLog(proximo, {
+      tabela: 'cargos_voluntarios', registro_id: cargo.id, acao: 'criacao', novo: cargo,
+    }));
+    return { ok: true, id: cargo.id };
+  }
+
+  atualizarVagasCargoVoluntario(id: number, vagasTotal: number): Resultado {
+    if (this.perfil() !== 'administrador') return { ok: false, erro: AVISO_SEM_PERMISSAO };
+    const db = this._db();
+    const cargo = db.cargosVoluntarios.find((item) => item.id === id);
+    const vagas = Number(vagasTotal);
+    if (!cargo || !Number.isInteger(vagas) || vagas < 1) {
+      return { ok: false, erro: 'Informe uma quantidade de vagas válida.' };
+    }
+    const ocupadas = db.inscricoesVoluntarios.filter(
+      (inscricao) => inscricao.cargo_id === id && inscricao.status !== 'rejeitada',
+    ).length;
+    if (vagas < ocupadas) {
+      return { ok: false, erro: `Não é possível reduzir abaixo das ${ocupadas} vagas ocupadas.` };
+    }
+    const proximo = {
+      ...db,
+      cargosVoluntarios: db.cargosVoluntarios.map((item) => item.id === id ? { ...item, vagas_total: vagas } : item),
+    };
+    this._db.set(this.comLog(proximo, {
+      tabela: 'cargos_voluntarios', registro_id: id, acao: 'atualizacao',
+      campo: 'vagas_total', anterior: cargo.vagas_total, novo: vagas,
+    }));
+    return { ok: true, id };
+  }
+
+  avaliarInscricaoVoluntario(id: number, status: 'aprovada' | 'rejeitada'): Resultado {
+    if (this.perfil() !== 'administrador') return { ok: false, erro: AVISO_SEM_PERMISSAO };
+    const db = this._db();
+    const inscricao = db.inscricoesVoluntarios.find((item) => item.id === id);
+    if (!inscricao) return { ok: false, erro: 'Inscrição voluntária não encontrada.' };
+    if (status === 'aprovada') {
+      const cargo = db.cargosVoluntarios.find((item) => item.id === inscricao.cargo_id);
+      const ocupadas = db.inscricoesVoluntarios.filter(
+        (item) => item.cargo_id === inscricao.cargo_id && item.status !== 'rejeitada',
+      ).length;
+      if (cargo && ocupadas > cargo.vagas_total) return { ok: false, erro: 'Não há mais vagas para este cargo.' };
+    }
+    const proximo = {
+      ...db,
+      inscricoesVoluntarios: db.inscricoesVoluntarios.map((item) => item.id === id ? { ...item, status } : item),
+    };
+    this._db.set(this.comLog(proximo, {
+      tabela: 'inscricoes_voluntarios', registro_id: id, acao: 'avaliacao',
+      campo: 'status', anterior: inscricao.status, novo: status,
+    }));
+    return { ok: true, id };
+  }
+
+  avaliarCadastroParticipante(id: number, status: 'aprovada' | 'rejeitada'): Resultado {
+    if (this.perfil() !== 'administrador') return { ok: false, erro: AVISO_SEM_PERMISSAO };
+    const db = this._db();
+    const cadastro = db.cadastrosParticipantes.find((item) => item.id === id);
+    if (!cadastro) return { ok: false, erro: 'Inscrição de participante não encontrada.' };
+    const proximo = {
+      ...db,
+      cadastrosParticipantes: db.cadastrosParticipantes.map((item) => item.id === id ? { ...item, status } : item),
+    };
+    this._db.set(this.comLog(proximo, {
+      tabela: 'cadastros_participantes', registro_id: id, acao: 'avaliacao',
+      campo: 'status', anterior: cadastro.status, novo: status,
+    }));
+    return { ok: true, id };
+  }
+
+  avaliarParceria(id: number, status: 'aprovada' | 'recusada'): Resultado {
+    if (this.perfil() !== 'administrador') return { ok: false, erro: AVISO_SEM_PERMISSAO };
+    const db = this._db();
+    const parceria = db.parcerias.find((item) => item.id === id);
+    if (!parceria) return { ok: false, erro: 'Proposta de parceria não encontrada.' };
+    const proximo = {
+      ...db,
+      parcerias: db.parcerias.map((item) => item.id === id ? { ...item, status } : item),
+    };
+    this._db.set(this.comLog(proximo, {
+      tabela: 'parcerias', registro_id: id, acao: 'avaliacao',
+      campo: 'status', anterior: parceria.status, novo: status,
+    }));
+    return { ok: true, id };
   }
 
   sair(): void {
@@ -1006,7 +1307,49 @@ export class StoreService {
       const bruto = localStorage.getItem(STORAGE_KEY);
       if (bruto) {
         const salvo = JSON.parse(bruto) as Database;
-        if (salvo?.edicoes?.length) return salvo;
+        if (salvo?.edicoes?.length) {
+          const inicial = criarEstadoInicial();
+          const usuariosSalvos = salvo.usuarios ?? [];
+          let proximoUsuarioId = this.proximoId(usuariosSalvos);
+          const idsPorUsuarioSeed = new Map<number, number>();
+          const usuariosMock = inicial.usuarios.flatMap((mock) => {
+            const existente = usuariosSalvos.find(
+              (usuario) => usuario.email.toLowerCase() === mock.email.toLowerCase(),
+            );
+            if (existente) {
+              idsPorUsuarioSeed.set(mock.id, existente.id);
+              return [];
+            }
+            const usuario = { ...mock, id: proximoUsuarioId++ };
+            idsPorUsuarioSeed.set(mock.id, usuario.id);
+            return [usuario];
+          });
+          const remapearUsuarios = <T extends { usuario_id: number }>(
+            registros: T[] | undefined,
+            mocks: T[],
+          ): T[] => registros ?? mocks.map((registro) => ({
+            ...registro,
+            usuario_id: idsPorUsuarioSeed.get(registro.usuario_id) ?? registro.usuario_id,
+          }));
+          return {
+            ...inicial,
+            ...salvo,
+            usuarios: [...usuariosSalvos, ...usuariosMock].map((usuario) => ({
+              ...usuario,
+              tipo_conta: usuario.tipo_conta ?? (usuario.perfil === 'administrador'
+                ? 'administrador'
+                : usuario.perfil === 'empresa'
+                  ? 'empresa'
+                  : usuario.perfil === 'participante'
+                    ? 'participante'
+                    : 'voluntario'),
+            })),
+            cargosVoluntarios: salvo.cargosVoluntarios ?? inicial.cargosVoluntarios,
+            inscricoesVoluntarios: remapearUsuarios(salvo.inscricoesVoluntarios, inicial.inscricoesVoluntarios),
+            cadastrosParticipantes: remapearUsuarios(salvo.cadastrosParticipantes, inicial.cadastrosParticipantes),
+            parcerias: remapearUsuarios(salvo.parcerias, inicial.parcerias),
+          };
+        }
       }
     } catch {
       /* estado corrompido: recria */

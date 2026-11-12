@@ -53,7 +53,32 @@ interface GrupoNav {
           </span>
         </a>
 
-        <nav class="scrollbar-thin flex-1 overflow-y-auto px-3 py-4">
+        @if (store.usuario()?.perfil === 'empresa') {
+          <nav class="flex-1 px-3 py-4" aria-label="Navegação da empresa">
+            <a
+              routerLink="/app/parceiros"
+              routerLinkActive="bg-primary/10 text-primary"
+              class="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-base-content/70 hover:bg-base-200"
+              (click)="menuAberto.set(false)"
+            >
+              <app-icon nome="users" classe="size-4 shrink-0" />
+              <span>Minha conta</span>
+            </a>
+          </nav>
+        } @else if (store.usuario()?.perfil === 'participante') {
+          <nav class="flex-1 px-3 py-4" aria-label="Navegação do participante">
+            <a
+              routerLink="/app/participante"
+              routerLinkActive="bg-primary/10 text-primary"
+              class="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-base-content/70 hover:bg-base-200"
+              (click)="menuAberto.set(false)"
+            >
+              <app-icon nome="users" classe="size-4 shrink-0" />
+              <span>Minha inscrição</span>
+            </a>
+          </nav>
+        } @else {
+          <nav class="scrollbar-thin flex-1 overflow-y-auto px-3 py-4">
           @for (grupo of grupos; track grupo.titulo) {
             <p
               class="mb-1 mt-4 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-base-content/40 first:mt-0"
@@ -78,7 +103,8 @@ interface GrupoNav {
               }
             }
           }
-        </nav>
+          </nav>
+        }
 
         <div class="border-t border-base-200 p-3">
           <a
@@ -117,25 +143,27 @@ interface GrupoNav {
 
           <div class="ml-auto flex items-center gap-2">
             @if (store.usuario(); as usuario) {
-              <div
-                class="hidden items-center gap-2 rounded-lg border border-base-300 bg-base-100 px-2 py-1 sm:flex"
-              >
-                <span class="text-[11px] font-medium uppercase tracking-wide text-base-content/40"
-                  >Perfil demo</span
+              @if (usuario.perfil === 'administrador') {
+                <div
+                  class="hidden items-center gap-2 rounded-lg border border-base-300 bg-base-100 px-2 py-1 sm:flex"
                 >
-                <select
-                  class="select select-ghost select-xs w-40 font-medium"
-                  [value]="usuario.email"
-                  (change)="trocarPerfil($event)"
-                  aria-label="Trocar perfil de demonstração"
-                >
-                  @for (u of store.db().usuarios; track u.id) {
-                    <option [value]="u.email">
-                      {{ rotuloPerfil(u.perfil) }} — {{ u.nome.split(' ')[0] }}
-                    </option>
-                  }
-                </select>
-              </div>
+                  <span class="text-[11px] font-medium uppercase tracking-wide text-base-content/40"
+                    >Trocar conta demo</span
+                  >
+                  <select
+                    class="select select-ghost select-xs w-48 font-medium"
+                    [value]="usuario.email"
+                    (change)="trocarPerfil($event)"
+                    aria-label="Trocar conta de demonstração"
+                  >
+                    @for (u of store.db().usuarios; track u.id) {
+                      <option [value]="u.email">
+                        {{ rotuloPerfil(u.perfil) }} — {{ u.nome.split(' ')[0] }}
+                      </option>
+                    }
+                  </select>
+                </div>
+              }
               <div class="flex items-center gap-2.5">
                 <div class="hidden text-right sm:block">
                   <p class="text-xs font-semibold leading-tight">{{ usuario.nome }}</p>
@@ -174,41 +202,46 @@ export class AppShellComponent {
   readonly grupos: GrupoNav[] = [
     {
       titulo: 'Operação',
-      itens: [{ modulo: 'M0', rotulo: 'Visão geral', rota: '/app/dashboard', icone: 'dashboard' }],
+      itens: [
+        { modulo: 'M0', rotulo: 'Visão geral', rota: '/app/dashboard', icone: 'dashboard', acao: 'dashboard.interno' },
+        { modulo: 'M16', rotulo: 'Meu voluntariado', rota: '/app/voluntario', icone: 'users', acao: 'voluntario.portal' },
+      ],
     },
     {
       titulo: 'Configuração',
       itens: [
-        { modulo: 'M1', rotulo: 'Edições', rota: '/app/edicoes', icone: 'trophy' },
+        { modulo: 'M1', rotulo: 'Edições', rota: '/app/edicoes', icone: 'trophy', acao: 'edicao.ver' },
         {
           modulo: 'M2',
           rotulo: 'Modalidades e critérios',
           rota: '/app/modalidades',
           icone: 'layers',
+          acao: 'modalidade.ver',
         },
-        { modulo: 'M3', rotulo: 'Regras versionadas', rota: '/app/regras', icone: 'book' },
-        { modulo: 'M4', rotulo: 'Escolas e equipes', rota: '/app/escolas', icone: 'school' },
-        { modulo: 'M4', rotulo: 'Equipes', rota: '/app/equipes', icone: 'users' },
+        { modulo: 'M3', rotulo: 'Regras versionadas', rota: '/app/regras', icone: 'book', acao: 'regras.ver' },
+        { modulo: 'M4', rotulo: 'Escolas e equipes', rota: '/app/escolas', icone: 'school', acao: 'escolas.ver' },
+        { modulo: 'M4', rotulo: 'Equipes', rota: '/app/equipes', icone: 'users', acao: 'equipes.ver' },
       ],
     },
     {
       titulo: 'Competição',
       itens: [
-        { modulo: 'M5', rotulo: 'Inscrições', rota: '/app/inscricoes', icone: 'clipboard' },
-        { modulo: 'M6', rotulo: 'Etapas e chaveamento', rota: '/app/etapas', icone: 'bracket' },
-        { modulo: 'M7', rotulo: 'Disputas', rota: '/app/disputas', icone: 'flag' },
+        { modulo: 'M5', rotulo: 'Inscrições', rota: '/app/inscricoes', icone: 'clipboard', acao: 'inscricao.ver' },
+        { modulo: 'M6', rotulo: 'Etapas e chaveamento', rota: '/app/etapas', icone: 'bracket', acao: 'etapa.ver' },
+        { modulo: 'M7', rotulo: 'Disputas', rota: '/app/disputas', icone: 'flag', acao: 'disputa.ver' },
       ],
     },
     {
       titulo: 'Resultados',
       itens: [
-        { modulo: 'M8', rotulo: 'Lançamento de pontos', rota: '/app/resultados', icone: 'target' },
-        { modulo: 'M9', rotulo: 'Classificação', rota: '/app/classificacao', icone: 'chart' },
+        { modulo: 'M8', rotulo: 'Lançamento de pontos', rota: '/app/resultados', icone: 'target', acao: 'resultados.ver' },
+        { modulo: 'M9', rotulo: 'Classificação', rota: '/app/classificacao', icone: 'chart', acao: 'classificacao.interna' },
         {
           modulo: 'M10',
           rotulo: 'Homologação e publicação',
           rota: '/app/publicacao',
           icone: 'badge',
+          acao: 'publicacao.ver',
         },
       ],
     },
@@ -222,7 +255,8 @@ export class AppShellComponent {
           icone: 'history',
           acao: 'auditoria.ver',
         },
-        { modulo: 'M14', rotulo: 'Interoperabilidade', rota: '/app/interop', icone: 'code' },
+        { modulo: 'M14', rotulo: 'Interoperabilidade', rota: '/app/interop', icone: 'code', acao: 'interop.ver' },
+        { modulo: 'M15', rotulo: 'Usuários e permissões', rota: '/app/usuarios', icone: 'users', acao: 'usuarios.gerenciar' },
       ],
     },
   ];

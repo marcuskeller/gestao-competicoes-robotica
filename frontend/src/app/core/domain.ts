@@ -18,6 +18,21 @@ export const CAMPOS_DESEMPATE: Record<string, string> = {
   tempo: 'Tempo',
 };
 
+export function cnpjValido(valor: string): boolean {
+  const cnpj = valor.replace(/\D/g, '');
+  if (!/^\d{14}$/.test(cnpj) || /^([\d])\1{13}$/.test(cnpj)) return false;
+
+  const calcularDigito = (base: string, pesos: number[]): string => {
+    const soma = [...base].reduce((total, digito, indice) => total + Number(digito) * pesos[indice], 0);
+    const resto = soma % 11;
+    return resto < 2 ? '0' : String(11 - resto);
+  };
+
+  const primeiro = calcularDigito(cnpj.slice(0, 12), [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+  const segundo = calcularDigito(cnpj.slice(0, 12) + primeiro, [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+  return cnpj.endsWith(primeiro + segundo);
+}
+
 export function pontosPorCriterios(
   criterios: CriterioPontuacao[],
   valores: Record<number, number>,

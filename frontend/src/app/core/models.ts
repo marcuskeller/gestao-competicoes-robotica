@@ -1,4 +1,12 @@
-export type Perfil = 'administrador' | 'organizador' | 'mesario' | 'homologador';
+export type TipoConta = 'administrador' | 'voluntario' | 'participante' | 'empresa';
+export type Perfil =
+  | 'administrador'
+  | 'organizador'
+  | 'mesario'
+  | 'homologador'
+  | 'voluntario'
+  | 'participante'
+  | 'empresa';
 
 export type StatusEdicao = 'planejada' | 'inscricoes' | 'em_andamento' | 'encerrada' | 'cancelada';
 export type StatusInscricao = 'submetida' | 'em_analise' | 'aprovada' | 'rejeitada' | 'cancelada';
@@ -14,7 +22,65 @@ export interface Usuario {
   nome: string;
   email: string;
   perfil: Perfil;
+  tipo_conta?: TipoConta;
+  organizacao?: string;
+  permissoes?: string[];
   ativo: boolean;
+}
+
+export interface CargoVoluntario {
+  id: number;
+  nome: string;
+  descricao: string;
+  vagas_total: number;
+  ativo: boolean;
+}
+
+export interface InscricaoVoluntario {
+  id: number;
+  usuario_id: number;
+  cargo_id: number;
+  telefone: string;
+  disponibilidade: string;
+  status: 'pendente' | 'aprovada' | 'rejeitada';
+}
+
+export interface InscricaoPessoaFisica {
+  id: number;
+  usuario_id: number;
+  tipo: 'pessoa_fisica';
+  nome_escola: string;
+  serie: string;
+  responsavel: string;
+  telefone_responsavel: string;
+  modalidade_id: number;
+  equipe_nome: string;
+  status: 'pendente' | 'aprovada' | 'rejeitada';
+}
+
+export interface InscricaoEscola {
+  id: number;
+  usuario_id: number;
+  tipo: 'escola';
+  cnpj: string;
+  nome_escola: string;
+  telefone: string;
+  nome_equipe: string;
+  modalidade_id: number;
+  alunos: { nome: string; serie: string }[];
+  status: 'pendente' | 'aprovada' | 'rejeitada';
+}
+
+export type CadastroParticipante = InscricaoPessoaFisica | InscricaoEscola;
+
+export interface Parceria {
+  id: number;
+  usuario_id: number;
+  cnpj: string;
+  telefone: string;
+  valor_proposto: number;
+  mensagem: string;
+  status: 'em_analise' | 'aprovada' | 'recusada';
 }
 
 export interface Edicao {
@@ -236,6 +302,10 @@ export interface LogAuditoria {
 
 export interface Database {
   usuarios: Usuario[];
+  cargosVoluntarios: CargoVoluntario[];
+  inscricoesVoluntarios: InscricaoVoluntario[];
+  cadastrosParticipantes: CadastroParticipante[];
+  parcerias: Parceria[];
   edicoes: Edicao[];
   modalidades: Modalidade[];
   criteriosPontuacao: CriterioPontuacao[];

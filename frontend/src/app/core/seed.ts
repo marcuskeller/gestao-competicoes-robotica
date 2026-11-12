@@ -121,10 +121,14 @@ function gerarEquipes(escolas: Escola[], edicaoId: number): Equipe[] {
 
 export function criarEstadoInicial(): Database {
   const usuarios: Usuario[] = [
-    { id: 1, nome: 'Marina Coordenação', email: 'admin@arena.demo', perfil: 'administrador', ativo: true },
-    { id: 2, nome: 'Rafael Organização', email: 'organizador@arena.demo', perfil: 'organizador', ativo: true },
-    { id: 3, nome: 'Bianca Mesária', email: 'mesario@arena.demo', perfil: 'mesario', ativo: true },
-    { id: 4, nome: 'Paulo Homologação', email: 'homologador@arena.demo', perfil: 'homologador', ativo: true },
+    { id: 1, nome: 'Marina Coordenação', email: 'admin@arena.demo', perfil: 'administrador', tipo_conta: 'administrador', ativo: true },
+    { id: 2, nome: 'Rafael Organização', email: 'organizador@arena.demo', perfil: 'organizador', tipo_conta: 'voluntario', ativo: true },
+    { id: 3, nome: 'Bianca Mesária', email: 'mesario@arena.demo', perfil: 'mesario', tipo_conta: 'voluntario', ativo: true },
+    { id: 4, nome: 'Paulo Homologação', email: 'homologador@arena.demo', perfil: 'homologador', tipo_conta: 'voluntario', ativo: true },
+    { id: 5, nome: 'Julia Mentora', email: 'julia.mentora@arena.demo', perfil: 'voluntario', tipo_conta: 'voluntario', ativo: true },
+    { id: 6, nome: 'Ana Parceira', email: 'ana@tecnologia.demo', perfil: 'empresa', tipo_conta: 'empresa', organizacao: 'Tecnologia Joinville Demo', ativo: true },
+    { id: 7, nome: 'Lucas Estudante', email: 'lucas.estudante@arena.demo', perfil: 'participante', tipo_conta: 'participante', ativo: true },
+    { id: 8, nome: 'Carla Diretora', email: 'carla.diretora@escola.demo', perfil: 'participante', tipo_conta: 'participante', organizacao: 'Escola Municipal de Robótica Demo', ativo: true },
   ];
 
   const edicoes: Database['edicoes'] = [
@@ -174,6 +178,35 @@ export function criarEstadoInicial(): Database {
       descricao: 'Robô autônomo em arena de resgate com vítimas simuladas.',
       tipo: 'equipe', min_integrantes: 2, max_integrantes: 4, ativo: true, ordem: 4,
     },
+  ];
+
+  const cargosVoluntarios: Database['cargosVoluntarios'] = [
+    { id: 1, nome: 'Mentoria de equipes', descricao: 'Acompanhar estudantes durante a preparação e a competição.', vagas_total: 8, ativo: true },
+    { id: 2, nome: 'Juiz ou mesário de pista', descricao: 'Apoiar a condução das disputas e registrar as súmulas.', vagas_total: 10, ativo: true },
+    { id: 3, nome: 'Montagem de arena', descricao: 'Preparar pistas, arenas e materiais das modalidades.', vagas_total: 6, ativo: true },
+    { id: 4, nome: 'Desenho de missões', descricao: 'Apoiar a criação e revisão de missões e desafios.', vagas_total: 4, ativo: true },
+  ];
+  const inscricoesVoluntarios: Database['inscricoesVoluntarios'] = [
+    { id: 1, usuario_id: 2, cargo_id: 1, telefone: '(47) 90000-0101', disponibilidade: '10 e 11 de novembro, manhã e tarde', status: 'aprovada' },
+    { id: 2, usuario_id: 3, cargo_id: 2, telefone: '(47) 90000-0102', disponibilidade: '11 e 12 de novembro, manhã', status: 'aprovada' },
+    { id: 3, usuario_id: 5, cargo_id: 3, telefone: '(47) 90000-0103', disponibilidade: '9 de novembro, tarde', status: 'pendente' },
+  ];
+  const cadastrosParticipantes: Database['cadastrosParticipantes'] = [
+    {
+      id: 1, usuario_id: 7, tipo: 'pessoa_fisica', nome_escola: 'Escola Municipal de Robótica Demo',
+      serie: '8º ano', responsavel: 'Responsável Fictício', telefone_responsavel: '(47) 90000-0201',
+      modalidade_id: 1, equipe_nome: 'Equipe Estudante Demo', status: 'pendente',
+    },
+    {
+      id: 2, usuario_id: 8, tipo: 'escola', cnpj: '11222333000181',
+      nome_escola: 'Escola Municipal de Robótica Demo', telefone: '(47) 90000-0202',
+      nome_equipe: 'Robôs do Futuro Demo', modalidade_id: 1,
+      alunos: [{ nome: 'Estudante Fictício A', serie: '7º ano' }, { nome: 'Estudante Fictício B', serie: '8º ano' }],
+      status: 'aprovada',
+    },
+  ];
+  const parcerias: Database['parcerias'] = [
+    { id: 1, usuario_id: 6, cnpj: '22334444000104', telefone: '(47) 90000-0301', valor_proposto: 5000, mensagem: 'Apoio fictício para kits e materiais da arena.', status: 'em_analise' },
   ];
 
   const criteriosPontuacao: Database['criteriosPontuacao'] = [
@@ -441,6 +474,10 @@ export function criarEstadoInicial(): Database {
 
   return {
     usuarios,
+    cargosVoluntarios,
+    inscricoesVoluntarios,
+    cadastrosParticipantes,
+    parcerias,
     edicoes,
     modalidades,
     criteriosPontuacao,

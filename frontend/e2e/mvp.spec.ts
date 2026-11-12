@@ -6,6 +6,7 @@ async function database(page: Page): Promise<Database> {
 }
 async function login(page: Page, name = 'Marina Coordenação'): Promise<void> {
   await page.goto('/login');
+  await page.getByLabel('Tipo de pessoa').selectOption(name.includes('Bianca') ? 'voluntario' : 'administrador');
   await page.getByRole('button', { name: new RegExp(name) }).click();
   await expect(page.getByRole('heading', { name: 'Visão geral' })).toBeVisible();
 }
@@ -41,6 +42,150 @@ test('entrada exige login e todos os módulos abrem com dados', async ({ page })
   expect(errors).toEqual([]);
 });
 
+test('painel orienta a jornada principal e se adapta a telas pequenas', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await login(page);
+
+  await expect(page.getByRole('heading', { name: 'Jornada da competição' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Revisar inscrições' })).toHaveAttribute(
+    'href',
+    '/app/inscricoes',
+  );
+  await expect(page.getByRole('link', { name: 'Acompanhar disputas' })).toHaveAttribute(
+    'href',
+    '/app/disputas',
+  );
+  await expect(page.getByRole('link', { name: 'Homologar resultados' })).toHaveAttribute(
+    'href',
+    '/app/publicacao',
+  );
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+});
+
+test('cria contas de administração, voluntariado e empresa e permite entrar pelo tipo', async ({
+  page,
+}) => {
+  await page.goto('/login');
+  await page.getByRole('button', { name: 'Cadastrar' }).click();
+
+  await page.getByLabel('Nome completo').fill('Ana Administradora');
+  await page.getByLabel('E-mail').fill('ana.admin@demo.test');
+  await page.getByLabel('Tipo de pessoa').selectOption('administrador');
+  await page.getByRole('button', { name: 'Criar perfil' }).click();
+  await expect(page.getByRole('heading', { name: 'Visão geral' })).toBeVisible();
+  expect((await database(page)).usuarios.find((user) => user.email === 'ana.admin@demo.test'))
+    .toMatchObject({ tipo_conta: 'administrador', perfil: 'administrador' });
+  await page.getByRole('button', { name: 'Sair' }).click();
+
+  await page.getByRole('button', { name: 'Cadastrar' }).click();
+  await page.getByLabel('Nome completo').fill('Bruno Voluntário');
+  await page.getByLabel('E-mail').fill('bruno.voluntario@demo.test');
+  await page.getByLabel('Tipo de pessoa').selectOption('voluntario');
+  await page.getByLabel('Cargo voluntário').selectOption('2');
+  await page.getByLabel('Telefone').fill('(47) 90000-1000');
+  await page.getByLabel('Disponibilidade').fill('11 e 12 de novembro, manhã');
+  await page.getByRole('button', { name: 'Criar perfil' }).click();
+  expect((await database(page)).usuarios.find((user) => user.email === 'bruno.voluntario@demo.test'))
+    .toMatchObject({ tipo_conta: 'voluntario', perfil: 'voluntario' });
+  await page.getByRole('button', { name: 'Sair' }).click();
+
+  await page.getByRole('button', { name: 'Cadastrar' }).click();
+  await page.getByLabel('Nome completo').fill('Carla Parceira');
+  await page.getByLabel('E-mail').fill('carla@empresa.demo');
+  await page.getByLabel('Tipo de pessoa').selectOption('empresa');
+  await page.getByLabel('Nome da empresa').fill('Robôs Joinville');
+  await page.getByLabel('CNPJ').fill('33444555000104');
+  await page.getByLabel('Telefone de contato').fill('(47) 90000-2000');
+  await page.getByLabel('Valor de apoio proposto (R$)').fill('2500');
+  await page.getByRole('button', { name: 'Criar perfil' }).click();
+  await expect(page.getByRole('alert')).toContainText('CNPJ válido');
+  await page.getByLabel('CNPJ').fill('33445555000104');
+  await page.getByRole('button', { name: 'Criar perfil' }).click();
+  await expect(page.getByRole('heading', { name: 'Área da empresa apoiadora' })).toBeVisible();
+  expect((await database(page)).usuarios.find((user) => user.email === 'carla@empresa.demo'))
+    .toMatchObject({ tipo_conta: 'empresa', perfil: 'empresa', organizacao: 'Robôs Joinville' });
+  await page.getByRole('button', { name: 'Sair' }).click();
+  await page.getByLabel('Tipo de pessoa').selectOption('empresa');
+  await page.getByRole('button', { name: /Robôs Joinville/ }).click();
+  await expect(page.getByRole('heading', { name: 'Área da empresa apoiadora' })).toBeVisible();
+});
+
+test('participante pode se inscrever como pessoa física ou por escola com CNPJ', async ({ page }) => {
+  await page.goto('/login');
+  await page.getByRole('button', { name: 'Cadastrar' }).click();
+  await page.getByLabel('Nome completo').fill('Estudante Teste');
+  await page.getByLabel('E-mail').fill('estudante@demo.test');
+  await page.getByLabel('Tipo de pessoa').selectOption('participante');
+  await page.getByLabel('Escola', { exact: true }).fill('Escola de Demonstração');
+  await page.getByLabel('Ano escolar').fill('8º ano');
+  await page.getByLabel('Responsável', { exact: true }).fill('Responsável de Teste');
+  await page.getByLabel('Telefone do responsável').fill('(47) 90000-3000');
+  await page.getByLabel('Modalidade', { exact: true }).selectOption('1');
+  await page.getByRole('button', { name: 'Criar perfil' }).click();
+  await expect(page.getByRole('heading', { name: 'Minha inscrição' })).toBeVisible();
+  const pessoaDb = await database(page);
+  const pessoaId = pessoaDb.usuarios.find((user) => user.email === 'estudante@demo.test')!.id;
+  expect(pessoaDb.cadastrosParticipantes.find((item) => item.usuario_id === pessoaId)).toMatchObject({
+    tipo: 'pessoa_fisica', nome_escola: 'Escola de Demonstração', serie: '8º ano',
+  });
+  await page.getByRole('button', { name: 'Sair' }).click();
+
+  await page.getByRole('button', { name: 'Cadastrar' }).click();
+  await page.getByLabel('Nome completo').fill('Diretora Teste');
+  await page.getByLabel('E-mail').fill('escola@demo.test');
+  await page.getByLabel('Tipo de pessoa').selectOption('participante');
+  await page.getByLabel('Tipo de inscrição').selectOption('escola');
+  await page.getByLabel('Nome da escola').fill('Escola de Demonstração CNPJ');
+  await page.getByLabel('CNPJ da escola').fill('44556666000104');
+  await page.getByLabel('Telefone da escola').fill('(47) 90000-4000');
+  await page.getByLabel('Nome da equipe').fill('Equipe CNPJ Demo');
+  await page.getByLabel('Modalidade', { exact: true }).selectOption('1');
+  await page.getByLabel('Integrantes').fill('Estudante Um | 6º ano\nEstudante Dois | 7º ano');
+  await page.getByRole('button', { name: 'Criar perfil' }).click();
+  await expect(page.getByRole('heading', { name: 'Minha inscrição' })).toBeVisible();
+  await expect(page.getByText('Estudante Um')).toBeVisible();
+  const escolaDb = await database(page);
+  const escolaUserId = escolaDb.usuarios.find((user) => user.email === 'escola@demo.test')!.id;
+  expect(escolaDb.cadastrosParticipantes.find((item) => item.usuario_id === escolaUserId)).toMatchObject({
+    tipo: 'escola', cnpj: '44556666000104', nome_equipe: 'Equipe CNPJ Demo',
+  });
+});
+
+test('administra usuários por categoria, cargos, vagas e permissões', async ({ page }) => {
+  await login(page);
+  await page.goto('/app/usuarios');
+  await expect(page.getByRole('heading', { name: 'Usuários e acessos' })).toBeVisible();
+  await expect(page.getByText('Julia Mentora')).toBeVisible();
+
+  const voluntaria = page.locator('article').filter({ hasText: 'Julia Mentora' });
+  await voluntaria.getByText('Permissões individuais').click();
+  await voluntaria.getByLabel('Consultar disputas').check();
+  expect((await database(page)).usuarios.find((user) => user.email === 'julia.mentora@arena.demo')?.permissoes)
+    .toContain('disputa.ver');
+  await page.getByRole('button', { name: 'Sair' }).click();
+  await page.getByLabel('Tipo de pessoa').selectOption('voluntario');
+  await page.getByRole('button', { name: /Julia Mentora/ }).click();
+  await page.goto('/app/disputas');
+  await expect(page.getByRole('heading', { name: 'Disputas', exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Sair' }).click();
+  await login(page);
+  await page.goto('/app/usuarios');
+  await page.getByRole('button', { name: 'Parcerias' }).click();
+  await expect(page.getByText('Tecnologia Joinville Demo')).toBeVisible();
+  await page.getByRole('button', { name: 'Participantes' }).click();
+  await expect(page.getByRole('heading', { name: 'Escola Municipal de Robótica Demo', exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Cargos e vagas' }).click();
+  await page.getByLabel('Nome do cargo').fill('Apoio de demonstração');
+  await page.getByLabel('Descrição').fill('Cargo fictício para validar a configuração.');
+  await page.getByLabel('Vagas', { exact: true }).fill('3');
+  await page.getByRole('button', { name: 'Adicionar cargo' }).click();
+  await expect(page.getByText('Apoio de demonstração')).toBeVisible();
+});
+
 test('cadastro de escola persiste após recarregar e gera auditoria', async ({ page }) => {
   await login(page);
   await page.goto('/app/escolas');
@@ -64,8 +209,7 @@ test('mesário não acessa auditoria nem cadastra escolas', async ({ page }) => 
   await page.goto('/app/auditoria');
   await expect(page).toHaveURL(/\/app\/dashboard$/);
   await page.goto('/app/escolas');
-  await expect(page.getByRole('heading', { name: 'Escolas', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Nova escola' })).toHaveCount(0);
+  await expect(page).toHaveURL(/\/app\/dashboard$/);
   await page.goto('/app/pontuar/7');
   await expect(page.getByRole('button', { name: 'Salvar pontuação' }).first()).toBeDisabled();
 });

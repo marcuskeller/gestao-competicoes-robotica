@@ -13,6 +13,7 @@ const cols = (...pairs: [string, string][]) => pairs.map(([key, label]) => ({ ke
 export const MODULES = {
   edicoes: {
     title: 'Edições',
+    permission: 'edicao.ver',
     description: 'Organize o calendário e acompanhe o ciclo de cada edição.',
     source: 'edicoes',
     columns: cols(
@@ -26,6 +27,7 @@ export const MODULES = {
   },
   modalidades: {
     title: 'Modalidades e critérios',
+    permission: 'modalidade.ver',
     description: 'Configure as modalidades e suas regras de participação.',
     source: 'modalidades',
     columns: cols(
@@ -38,6 +40,7 @@ export const MODULES = {
   },
   criterios: {
     title: 'Critérios de pontuação',
+    permission: 'modalidade.ver',
     description: 'A pontuação considera o valor lançado multiplicado pelo peso.',
     source: 'criteriosPontuacao',
     columns: cols(
@@ -50,6 +53,7 @@ export const MODULES = {
   },
   desempates: {
     title: 'Critérios de desempate',
+    permission: 'modalidade.ver',
     description: 'Os critérios são aplicados na ordem cadastrada.',
     source: 'criteriosDesempate',
     columns: cols(
@@ -63,6 +67,7 @@ export const MODULES = {
   },
   regras: {
     title: 'Regras versionadas',
+    permission: 'regras.ver',
     description: 'Uma nova publicação preserva a versão anterior como revogada.',
     source: 'regras',
     columns: cols(
@@ -76,6 +81,7 @@ export const MODULES = {
   },
   escolas: {
     title: 'Escolas',
+    permission: 'escolas.ver',
     description: 'Instituições participantes do campeonato.',
     source: 'escolas',
     columns: cols(['nome', 'Escola'], ['rede', 'Rede'], ['municipio', 'Município'], ['uf', 'UF']),
@@ -83,6 +89,7 @@ export const MODULES = {
   },
   equipes: {
     title: 'Equipes',
+    permission: 'equipes.ver',
     description: 'Equipes vinculadas às escolas e edições.',
     source: 'equipes',
     columns: cols(['nome', 'Equipe'], ['escola', 'Escola'], ['status', 'Status']),
@@ -90,6 +97,7 @@ export const MODULES = {
   },
   participantes: {
     title: 'Participantes',
+    permission: 'equipes.ver',
     description: 'Participantes fictícios para a demonstração.',
     source: 'participantes',
     columns: cols(['nome', 'Nome'], ['equipe', 'Equipe'], ['papel', 'Papel'], ['serie', 'Série']),
@@ -97,6 +105,7 @@ export const MODULES = {
   },
   inscricoes: {
     title: 'Inscrições',
+    permission: 'inscricao.ver',
     description: 'Inscreva equipes e avalie sua participação por modalidade.',
     source: 'inscricoes',
     columns: cols(
@@ -109,6 +118,7 @@ export const MODULES = {
   },
   etapas: {
     title: 'Etapas e chaveamento',
+    permission: 'etapa.ver',
     description: 'Crie fases de grupos e gere os confrontos das equipes aprovadas.',
     source: 'etapas',
     columns: cols(
@@ -121,6 +131,7 @@ export const MODULES = {
   },
   disputas: {
     title: 'Disputas',
+    permission: 'disputa.ver',
     description: 'Acompanhe os confrontos e conclua as disputas após registrar os pontos.',
     source: 'disputas',
     columns: cols(
@@ -133,6 +144,7 @@ export const MODULES = {
   },
   resultados: {
     title: 'Pontuações registradas',
+    permission: 'resultados.ver',
     description: 'Para lançar ou corrigir pontos, abra a disputa correspondente.',
     source: 'resultados',
     columns: cols(
@@ -157,6 +169,7 @@ export const MODULES = {
   },
   publicacao: {
     title: 'Homologação e publicação',
+    permission: 'publicacao.ver',
     description: 'Confira as disputas antes de homologar e publicar os resultados.',
     source: 'etapas',
     columns: cols(['nome', 'Etapa'], ['modalidade', 'Modalidade'], ['status', 'Status']),
@@ -177,6 +190,7 @@ export const MODULES = {
   },
   interop: {
     title: 'Interoperabilidade',
+    permission: 'interop.ver',
     description: 'Snapshots versionados dos resultados publicados.',
     source: 'publicacoes',
     columns: cols(
