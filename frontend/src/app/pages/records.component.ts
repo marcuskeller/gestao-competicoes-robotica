@@ -118,7 +118,15 @@ import type { Resultado, StatusEdicao } from '../core/models';
           </thead>
           <tbody>
             @for (row of filteredRows(); track row['id']) {
-              <tr>
+              <tr
+                [class.cursor-pointer]="module() === 'equipes'"
+                [class.hover:bg-base-200]="module() === 'equipes'"
+                [attr.tabindex]="module() === 'equipes' ? 0 : null"
+                [attr.aria-label]="module() === 'equipes' ? 'Ver detalhes da equipe ' + display(row['nome']) : null"
+                (click)="abrirEquipeDaLinha($event)"
+                (keydown.enter)="abrirEquipeDaLinha($event)"
+                (keydown.space)="abrirEquipeDaLinha($event)"
+              >
                 @for (column of config().columns; track column.key) {
                   <td class="max-w-sm whitespace-normal break-words">
                     @if (column.key === 'status') {
@@ -368,6 +376,14 @@ export class RecordsComponent {
   }
   equipe(id: number): string {
     return this.store.db().equipes.find((e) => e.id === id)?.nome ?? '—';
+  }
+  abrirEquipeDaLinha(event: Event): void {
+    if (this.module() !== 'equipes') return;
+    if (event instanceof KeyboardEvent) event.preventDefault();
+    const elemento = event.target;
+    if (!(elemento instanceof HTMLElement) || elemento.closest('button, a, input, select, textarea')) return;
+    const linha = event.currentTarget;
+    if (linha instanceof HTMLElement) linha.querySelector<HTMLButtonElement>('app-team-details button')?.click();
   }
   modalidade(id: number): string {
     return this.store.db().modalidades.find((m) => m.id === id)?.nome ?? '—';
