@@ -1099,6 +1099,51 @@ export class StoreService {
     return { ok: true, id: equipe.id };
   }
 
+  atualizarEquipeParticipante(equipeId: number, dados: {
+    nome: string;
+    modalidade_id: number;
+    alunos: { nome: string; serie: string }[];
+  }): Resultado {
+    const usuario = this.usuario();
+    const db = this._db();
+    const equipe = db.equipes.find((item) => item.id === equipeId);
+    const escola = usuario?.tipo_participante === 'escola'
+      ? db.escolas.find((item) => item.cnpj === usuario.cnpj || item.responsavel_usuario_id === usuario.id)
+      : undefined;
+    const podeEditar = usuario?.tipo_conta === 'participante'
+      && equipe
+      && (equipe.responsavel_usuario_id === usuario.id || (escola && equipe.escola_id === escola.id));
+    if (!podeEditar || !equipe) return { ok: false, erro: AVISO_SEM_PERMISSAO };
+    if (equipe.status === 'confirmada') return { ok: false, erro: 'Equipes confirmadas não podem ser editadas.' };
+
+    const nome = dados.nome.trim();
+    const modalidade = db.modalidades.find((item) => item.id === dados.modalidade_id && item.ativo);
+    const alunos = dados.alunos.map((item) => ({ nome: item.nome.trim(), serie: item.serie.trim() }))
+      .filter((item) => item.nome && item.serie);
+    if (!nome || !modalidade || modalidade.edicao_id !== equipe.edicao_id)
+      return { ok: false, erro: 'Informe um nome e uma modalidade válida para a edição.' };
+    if (alunos.length < modalidade.min_integrantes || alunos.length > modalidade.max_integrantes)
+      return { ok: false, erro: `A modalidade permite de ${modalidade.min_integrantes} a ${modalidade.max_integrantes} integrantes.` };
+
+    const existentes = db.participantes.filter((item) => item.equipe_id !== equipeId);
+    const primeiroId = this.proximoId(db.participantes);
+    const participantes = alunos.map((aluno, index) => ({
+      id: primeiroId + index,
+      equipe_id: equipeId,
+      nome: aluno.nome,
+      serie: aluno.serie,
+      papel: index === 0 ? 'capitao' as const : 'integrante' as const,
+    }));
+    const equipes = db.equipes.map((item) => item.id === equipeId
+      ? { ...item, nome, modalidade_id: modalidade.id }
+      : item);
+    this._db.set(this.comLog({ ...db, equipes, participantes: [...existentes, ...participantes] }, {
+      tabela: 'equipes', registro_id: equipeId, acao: 'edicao_participante',
+      anterior: equipe.nome, novo: { nome, modalidade: modalidade.nome, participantes: alunos.length },
+    }));
+    return { ok: true, id: equipeId };
+  }
+
   submeterInscricao(equipeId: number, modalidadeId: number): Resultado {
     const db = this._db();
     const usuario = this.usuario();

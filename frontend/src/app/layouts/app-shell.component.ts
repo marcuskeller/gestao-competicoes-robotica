@@ -68,13 +68,26 @@ interface GrupoNav {
         } @else if (store.usuario()?.perfil === 'participante') {
           <nav class="flex-1 px-3 py-4" aria-label="Navegação do participante">
             <a
-              routerLink="/app/participante"
-              routerLinkActive="bg-primary/10 text-primary"
+              [routerLink]="['/app/participante']"
+              [queryParams]="{ aba: 'cadastro' }"
+              [class.bg-primary/10]="abaParticipante() === 'cadastro'"
+              [class.text-primary]="abaParticipante() === 'cadastro'"
               class="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-base-content/70 hover:bg-base-200"
               (click)="menuAberto.set(false)"
             >
+              <app-icon nome="plus" classe="size-4 shrink-0" />
+              <span>Cadastrar equipe</span>
+            </a>
+            <a
+              [routerLink]="['/app/participante']"
+              [queryParams]="{ aba: 'equipes' }"
+              [class.bg-primary/10]="abaParticipante() === 'equipes'"
+              [class.text-primary]="abaParticipante() === 'equipes'"
+              class="mt-1 flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-base-content/70 hover:bg-base-200"
+              (click)="menuAberto.set(false)"
+            >
               <app-icon nome="users" classe="size-4 shrink-0" />
-              <span>Minha inscrição</span>
+              <span>{{ store.usuario()?.tipo_participante === 'escola' ? 'Equipes da escola' : 'Minhas equipes' }}</span>
             </a>
           </nav>
         } @else {
@@ -190,6 +203,13 @@ export class AppShellComponent {
   readonly store = inject(StoreService);
   private readonly router = inject(Router);
   readonly menuAberto = signal(false);
+  readonly abaParticipante = signal(typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('aba') === 'equipes' ? 'equipes' : 'cadastro');
+
+  constructor() {
+    this.router.routerState.root.queryParamMap.subscribe((params) => {
+      this.abaParticipante.set(params.get('aba') === 'equipes' ? 'equipes' : 'cadastro');
+    });
+  }
 
   readonly grupos: GrupoNav[] = [
     {

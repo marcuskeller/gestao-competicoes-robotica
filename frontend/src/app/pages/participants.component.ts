@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { StoreService } from '../core/store.service';
 import { TeamDetailsComponent } from '../shared/team-details.component';
 import type { Inscricao, Modalidade, Resultado, Rede } from '../core/models';
@@ -22,11 +22,6 @@ import type { Inscricao, Modalidade, Resultado, Rede } from '../core/models';
         {{ mensagem() }}
       </p>
     }
-
-    <div class="mt-6 grid w-full grid-cols-2 gap-2 sm:inline-grid sm:w-auto" role="tablist" aria-label="Gerenciar equipes">
-      <button class="tab min-h-11 h-auto whitespace-normal rounded-lg px-3 text-center leading-tight" [class.tab-active]="abaEquipes() === 'cadastro'" [attr.aria-selected]="abaEquipes() === 'cadastro'" role="tab" type="button" (click)="abaEquipes.set('cadastro')">Cadastrar equipe</button>
-      <button class="tab min-h-11 h-auto whitespace-normal rounded-lg px-3 text-center leading-tight" [class.tab-active]="abaEquipes() === 'equipes'" [attr.aria-selected]="abaEquipes() === 'equipes'" role="tab" type="button" (click)="abaEquipes.set('equipes')">{{ tipoEscola() ? 'Equipes da escola' : 'Minhas equipes' }} ({{ equipes().length }})</button>
-    </div>
 
     <div class="mt-6 grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
       @if (abaEquipes() === 'cadastro') {
@@ -131,6 +126,38 @@ import type { Inscricao, Modalidade, Resultado, Rede } from '../core/models';
                   </li>
                 }
               </ul>
+              @if (item.equipe.status !== 'confirmada') {
+                @if (equipeEditando() === item.equipe.id) {
+                  <div class="mt-4 rounded-xl border border-primary/30 bg-base-100 p-4" (click)="$event.stopPropagation()">
+                    <h4 class="font-semibold">Editar equipe</h4>
+                    <label class="form-control mt-3 w-full">
+                      <span class="label-text mb-1">Nome da equipe</span>
+                      <input class="input input-bordered w-full" [value]="nomeEdicao()" (input)="nomeEdicao.set(valorDo($event))" />
+                    </label>
+                    <label class="form-control mt-3 w-full">
+                      <span class="label-text mb-1">Modalidade</span>
+                      <select class="select select-bordered w-full" [value]="modalidadeEdicao()" (change)="modalidadeEdicao.set(+valorDo($event))">
+                        @for (modalidade of modalidades(); track modalidade.id) {
+                          <option [value]="modalidade.id">{{ modalidade.nome }}</option>
+                        }
+                      </select>
+                    </label>
+                    <label class="form-control mt-3 w-full">
+                      <span class="label-text mb-1">Integrantes (um por linha: Nome | Série)</span>
+                      <textarea class="textarea textarea-bordered w-full" rows="4" [value]="alunosEdicao()" (input)="alunosEdicao.set(valorDo($event))"></textarea>
+                    </label>
+                    @if (erroEdicao()) { <p class="mt-2 text-sm text-error" role="alert">{{ erroEdicao() }}</p> }
+                    <div class="mt-3 flex justify-end gap-2">
+                      <button class="btn btn-ghost btn-sm" type="button" (click)="equipeEditando.set(null)">Cancelar</button>
+                      <button class="btn btn-primary btn-sm" type="button" (click)="salvarEquipe(item.equipe.id)">Salvar</button>
+                    </div>
+                  </div>
+                } @else {
+                  <button class="btn btn-outline btn-sm mt-4 min-h-11" type="button" (click)="iniciarEdicaoEquipe(item); $event.stopPropagation()">Editar dados</button>
+                }
+              } @else {
+                <p class="mt-3 text-xs text-base-content/55">Equipe confirmada: edição bloqueada.</p>
+              }
               @if (!item.inscricao && periodoAberto() && item.equipe.modalidade_id) {
                 <button class="btn btn-primary btn-sm mt-4 min-h-11" type="button" (click)="inscrever(item.equipe.id, item.equipe.modalidade_id!)">Enviar inscrição</button>
               }
@@ -153,6 +180,8 @@ import type { Inscricao, Modalidade, Resultado, Rede } from '../core/models';
 })
 export class ParticipantsComponent {
   readonly store = inject(StoreService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   readonly modalidadeId = signal(1);
   readonly nomeEscola = signal('');
   readonly rede = signal<Rede | ''>('');
@@ -163,6 +192,17 @@ export class ParticipantsComponent {
   readonly mensagem = signal('');
   readonly resultado = signal<Resultado | null>(null);
   readonly abaEquipes = signal<'cadastro' | 'equipes'>('cadastro');
+  readonly equipeEditando = signal<number | null>(null);
+  readonly nomeEdicao = signal('');
+  readonly modalidadeEdicao = signal(1);
+  readonly alunosEdicao = signal('');
+  readonly erroEdicao = signal('');
+
+  constructor() {
+    this.route.queryParamMap.subscribe((params) => {
+      this.abaEquipes.set(params.get('aba') === 'equipes' ? 'equipes' : 'cadastro');
+    });
+  }
 
   readonly tipoEscola = computed(() => this.store.usuario()?.tipo_participante === 'escola');
   readonly modalidades = computed(() => this.store.db().modalidades.filter((item) => item.ativo));
@@ -233,13 +273,37 @@ export class ParticipantsComponent {
     if (result.ok) {
       this.nomeEquipe.set('');
       this.alunosTexto.set('');
-      this.abaEquipes.set('equipes');
+      this.router.navigate([], { relativeTo: this.route, queryParams: { aba: 'equipes' }, queryParamsHandling: 'merge' });
     }
   }
 
   inscrever(equipeId: number, modalidadeId: number): void {
     const result = this.store.submeterInscricao(equipeId, modalidadeId);
     this.exibir(result, 'Inscrição enviada para análise.');
+  }
+
+  iniciarEdicaoEquipe(item: { equipe: { id: number; nome: string; modalidade_id?: number }; alunos: { nome: string; serie: string }[] }): void {
+    this.equipeEditando.set(item.equipe.id);
+    this.nomeEdicao.set(item.equipe.nome);
+    this.modalidadeEdicao.set(item.equipe.modalidade_id ?? this.modalidades()[0]?.id ?? 1);
+    this.alunosEdicao.set(item.alunos.map((aluno) => `${aluno.nome} | ${aluno.serie}`).join('\n'));
+    this.erroEdicao.set('');
+  }
+
+  salvarEquipe(equipeId: number): void {
+    const alunos = this.alunosEdicao().split(/\r?\n/).map((linha) => {
+      const [nome, serie] = linha.split('|');
+      return { nome: nome?.trim() ?? '', serie: serie?.trim() ?? '' };
+    }).filter((aluno) => aluno.nome && aluno.serie);
+    const result = this.store.atualizarEquipeParticipante(equipeId, {
+      nome: this.nomeEdicao(), modalidade_id: this.modalidadeEdicao(), alunos,
+    });
+    if (!result.ok) {
+      this.erroEdicao.set(result.erro ?? 'Não foi possível atualizar a equipe.');
+      return;
+    }
+    this.equipeEditando.set(null);
+    this.exibir(result, 'Dados da equipe atualizados.');
   }
 
   statusInscricao(inscricao?: Inscricao): string {
