@@ -30,5 +30,11 @@ export const permissionGuard: CanActivateFn = (route) => {
   const permission = route.data['permission'] as string | undefined;
   const store = inject(StoreService);
   if (store.usuario() && (!permission || store.podeFazer(permission))) return true;
-  return inject(Router).createUrlTree([store.usuario() ? '/app/dashboard' : '/login']);
+  const usuario = store.usuario();
+  const destino = !usuario
+    ? '/login'
+    : usuario.tipo_conta === 'voluntario'
+      ? '/app/voluntario'
+      : '/app/dashboard';
+  return inject(Router).createUrlTree([destino]);
 };

@@ -2,6 +2,7 @@ import { computed, effect, Injectable, signal } from '@angular/core';
 import { cnpjValido, cpfValido, montarSnapshot, pontosPorCriterios, publicacaoVigente } from './domain';
 import type {
   CriterioPontuacao,
+  CriterioDesempate,
   Database,
   Disputa,
   Edicao,
@@ -9,6 +10,7 @@ import type {
   Escola,
   Equipe,
   Inscricao,
+  Modalidade,
   Parceria,
   Perfil,
   Participante,
@@ -19,7 +21,7 @@ import type {
   TipoConta,
   Usuario,
 } from './models';
-import { AVISO_SEM_PERMISSAO, pode } from './permissions';
+import { AVISO_SEM_PERMISSAO, PERMISSOES_PADRAO_VOLUNTARIO, pode } from './permissions';
 import { criarEstadoInicial } from './seed';
 
 const STORAGE_KEY = 'arena-robotica:db:v2';
@@ -64,8 +66,12 @@ export class StoreService {
   podeFazer(acao: string): boolean {
     const usuario = this.usuario();
     if (!usuario) return false;
+    if (usuario.tipo_conta === 'voluntario') {
+      if (acao === 'voluntario.portal') return true;
+      if (usuario.permissoes !== undefined) return usuario.permissoes.includes(acao);
+      return PERMISSOES_PADRAO_VOLUNTARIO[usuario.perfil]?.includes(acao) ?? false;
+    }
     if (usuario.perfil === 'administrador') return true;
-    if (usuario.tipo_conta === 'voluntario' && acao === 'voluntario.portal') return true;
     if (usuario.permissoes !== undefined) return usuario.permissoes.includes(acao);
     return pode(usuario.perfil, acao);
   }
@@ -296,7 +302,7 @@ export class StoreService {
   }
 
   atualizarPermissoesUsuario(usuarioId: number, permissoes: string[]): Resultado {
-    if (this.perfil() !== 'administrador') return { ok: false, erro: AVISO_SEM_PERMISSAO };
+    if (!this.podeFazer('usuarios.gerenciar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
     const db = this._db();
     const usuario = db.usuarios.find((item) => item.id === usuarioId);
     if (!usuario || usuario.perfil === 'administrador') {
@@ -315,7 +321,7 @@ export class StoreService {
   }
 
   criarCargoVoluntario(dados: { nome: string; descricao: string; vagas_total: number }): Resultado {
-    if (this.perfil() !== 'administrador') return { ok: false, erro: AVISO_SEM_PERMISSAO };
+    if (!this.podeFazer('cargos.gerenciar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
     const nome = dados.nome.trim();
     const vagas = Number(dados.vagas_total);
     if (!nome || !Number.isInteger(vagas) || vagas < 1) {
@@ -334,7 +340,7 @@ export class StoreService {
   }
 
   atualizarVagasCargoVoluntario(id: number, vagasTotal: number): Resultado {
-    if (this.perfil() !== 'administrador') return { ok: false, erro: AVISO_SEM_PERMISSAO };
+    if (!this.podeFazer('cargos.gerenciar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
     const db = this._db();
     const cargo = db.cargosVoluntarios.find((item) => item.id === id);
     const vagas = Number(vagasTotal);
@@ -359,7 +365,7 @@ export class StoreService {
   }
 
   avaliarInscricaoVoluntario(id: number, status: 'aprovada' | 'rejeitada'): Resultado {
-    if (this.perfil() !== 'administrador') return { ok: false, erro: AVISO_SEM_PERMISSAO };
+    if (!this.podeFazer('usuarios.gerenciar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
     const db = this._db();
     const inscricao = db.inscricoesVoluntarios.find((item) => item.id === id);
     if (!inscricao) return { ok: false, erro: 'Inscrição voluntária não encontrada.' };
@@ -382,7 +388,7 @@ export class StoreService {
   }
 
   avaliarCadastroParticipante(id: number, status: 'aprovada' | 'rejeitada'): Resultado {
-    if (this.perfil() !== 'administrador') return { ok: false, erro: AVISO_SEM_PERMISSAO };
+    if (!this.podeFazer('usuarios.gerenciar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
     const db = this._db();
     const cadastro = db.cadastrosParticipantes.find((item) => item.id === id);
     if (!cadastro) return { ok: false, erro: 'Inscrição de participante não encontrada.' };
@@ -467,10 +473,13 @@ export class StoreService {
   }
 
   avaliarParceria(id: number, status: 'aprovada' | 'recusada'): Resultado {
-    if (this.perfil() !== 'administrador') return { ok: false, erro: AVISO_SEM_PERMISSAO };
+    if (!this.podeFazer('usuarios.gerenciar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
     const db = this._db();
     const parceria = db.parcerias.find((item) => item.id === id);
     if (!parceria) return { ok: false, erro: 'Proposta de parceria não encontrada.' };
+    if (parceria.tipo_apoio === 'financeiro' || (!parceria.tipo_apoio && parceria.valor_proposto > 0)) {
+      return { ok: false, erro: 'Contribuições financeiras são registradas diretamente e não precisam de aprovação.' };
+    }
     const proximo = {
       ...db,
       parcerias: db.parcerias.map((item) => item.id === id ? { ...item, status } : item),
@@ -568,6 +577,128 @@ export class StoreService {
       }),
     );
     return { ok: true, id };
+  }
+
+  atualizarRegistroDemo(modulo: string, id: number, campos: Record<string, string>): Resultado {
+    const numero = (chave: string) => Number(campos[chave]);
+    const texto = (chave: string) => (campos[chave] ?? '').trim();
+    switch (modulo) {
+      case 'edicoes':
+        return this.atualizarEdicao(id, {
+          nome: texto('nome'),
+          ano: numero('ano'),
+          numero: numero('numero'),
+          tema: texto('tema'),
+          local: texto('local'),
+          data_inicio: campos['data_inicio'],
+          data_fim: campos['data_fim'],
+        });
+      case 'modalidades': {
+        if (!this.podeFazer('modalidade.editar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
+        const db = this._db();
+        const atual = db.modalidades.find((item) => item.id === id);
+        if (!atual) return { ok: false, erro: 'Modalidade não encontrada.' };
+        const dados = {
+          edicao_id: numero('edicao_id'),
+          nome: texto('nome'),
+          slug: texto('slug'),
+          descricao: texto('descricao'),
+          tipo: campos['tipo'] as Modalidade['tipo'],
+          min_integrantes: numero('min_integrantes'),
+          max_integrantes: numero('max_integrantes'),
+        };
+        if (dados.min_integrantes < 1 || dados.min_integrantes > dados.max_integrantes) {
+          return { ok: false, erro: 'O mínimo de integrantes deve ser positivo e não pode superar o máximo.' };
+        }
+        if (db.modalidades.some((item) => item.id !== id && item.edicao_id === dados.edicao_id && item.slug === dados.slug)) {
+          return { ok: false, erro: 'Já existe modalidade com este identificador nesta edição.' };
+        }
+        const proximo = { ...db, modalidades: db.modalidades.map((item) => item.id === id ? { ...item, ...dados } : item) };
+        this._db.set(this.comLog(proximo, { tabela: 'modalidades', registro_id: id, acao: 'alteracao', anterior: atual, novo: { ...atual, ...dados } }));
+        return { ok: true, id };
+      }
+      case 'criterios': {
+        if (!this.podeFazer('criterio.editar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
+        const db = this._db();
+        const atual = db.criteriosPontuacao.find((item) => item.id === id);
+        if (!atual) return { ok: false, erro: 'Critério não encontrado.' };
+        const dados = { modalidade_id: numero('modalidade_id'), nome: texto('nome'), descricao: texto('descricao'), peso: numero('peso') };
+        if (dados.peso <= 0) return { ok: false, erro: 'O peso deve ser maior que zero.' };
+        const proximo = { ...db, criteriosPontuacao: db.criteriosPontuacao.map((item) => item.id === id ? { ...item, ...dados } : item) };
+        this._db.set(this.comLog(proximo, { tabela: 'criterios_pontuacao', registro_id: id, acao: 'alteracao', anterior: atual, novo: { ...atual, ...dados } }));
+        return { ok: true, id };
+      }
+      case 'desempates': {
+        if (!this.podeFazer('criterio.editar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
+        const db = this._db();
+        const atual = db.criteriosDesempate.find((item) => item.id === id);
+        if (!atual) return { ok: false, erro: 'Critério de desempate não encontrado.' };
+        const dados = {
+          modalidade_id: numero('modalidade_id'),
+          nome: texto('nome'),
+          campo: campos['campo'] as CriterioDesempate['campo'],
+          direcao: campos['direcao'] as CriterioDesempate['direcao'],
+        };
+        const proximo = { ...db, criteriosDesempate: db.criteriosDesempate.map((item) => item.id === id ? { ...item, ...dados } : item) };
+        this._db.set(this.comLog(proximo, { tabela: 'criterios_desempate', registro_id: id, acao: 'alteracao', anterior: atual, novo: { ...atual, ...dados } }));
+        return { ok: true, id };
+      }
+      case 'escolas': {
+        if (!this.podeFazer('escola.editar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
+        const db = this._db();
+        const atual = db.escolas.find((item) => item.id === id);
+        if (!atual) return { ok: false, erro: 'Escola não encontrada.' };
+        const dados = { nome: texto('nome'), rede: campos['rede'] as Escola['rede'], municipio: texto('municipio'), uf: texto('uf').toUpperCase() };
+        if (!dados.nome || !dados.municipio || !/^[A-Z]{2}$/.test(dados.uf)) return { ok: false, erro: 'Informe nome, município e UF válida.' };
+        const proximo = { ...db, escolas: db.escolas.map((item) => item.id === id ? { ...item, ...dados } : item) };
+        this._db.set(this.comLog(proximo, { tabela: 'escolas', registro_id: id, acao: 'alteracao', anterior: atual, novo: { ...atual, ...dados } }));
+        return { ok: true, id };
+      }
+      case 'equipes': {
+        if (!this.podeFazer('equipe.editar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
+        const db = this._db();
+        const atual = db.equipes.find((item) => item.id === id);
+        if (!atual) return { ok: false, erro: 'Equipe não encontrada.' };
+        const edicaoId = numero('edicao_id');
+        const escolaId = numero('escola_id');
+        if (!db.edicoes.some((item) => item.id === edicaoId) || !db.escolas.some((item) => item.id === escolaId)) {
+          return { ok: false, erro: 'Selecione uma edição e uma escola válidas.' };
+        }
+        const dados = { edicao_id: edicaoId, escola_id: escolaId, nome: texto('nome') };
+        if (!dados.nome) return { ok: false, erro: 'Informe o nome da equipe.' };
+        const proximo = { ...db, equipes: db.equipes.map((item) => item.id === id ? { ...item, ...dados } : item) };
+        this._db.set(this.comLog(proximo, { tabela: 'equipes', registro_id: id, acao: 'alteracao', anterior: atual, novo: { ...atual, ...dados } }));
+        return { ok: true, id };
+      }
+      case 'participantes': {
+        if (!this.podeFazer('equipe.editar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
+        const db = this._db();
+        const atual = db.participantes.find((item) => item.id === id);
+        if (!atual) return { ok: false, erro: 'Participante não encontrado.' };
+        const equipeId = numero('equipe_id');
+        if (!db.equipes.some((item) => item.id === equipeId)) return { ok: false, erro: 'Selecione uma equipe válida.' };
+        const dados = { equipe_id: equipeId, nome: texto('nome'), papel: campos['papel'] as Participante['papel'], serie: texto('serie') };
+        if (!dados.nome || !dados.serie) return { ok: false, erro: 'Informe nome e série do participante.' };
+        const proximo = { ...db, participantes: db.participantes.map((item) => item.id === id ? { ...item, ...dados } : item) };
+        this._db.set(this.comLog(proximo, { tabela: 'participantes', registro_id: id, acao: 'alteracao', anterior: atual, novo: { ...atual, ...dados } }));
+        return { ok: true, id };
+      }
+      case 'etapas': {
+        if (!this.podeFazer('etapa.editar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
+        const db = this._db();
+        const atual = db.etapas.find((item) => item.id === id);
+        if (!atual) return { ok: false, erro: 'Etapa não encontrada.' };
+        if (db.disputas.some((item) => item.etapa_id === id)) return { ok: false, erro: 'Não é possível alterar uma etapa depois da criação de disputas.' };
+        const modalidade = db.modalidades.find((item) => item.id === numero('modalidade_id'));
+        if (!modalidade || !texto('nome') || campos['data_fim'] < campos['data_inicio']) return { ok: false, erro: 'Informe modalidade, nome e período válidos.' };
+        const dados = { modalidade_id: modalidade.id, edicao_id: modalidade.edicao_id, nome: texto('nome'), tipo: campos['tipo'] as Etapa['tipo'], data_inicio: campos['data_inicio'], data_fim: campos['data_fim'] };
+        const proximo = { ...db, etapas: db.etapas.map((item) => item.id === id ? { ...item, ...dados } : item) };
+        this._db.set(this.comLog(proximo, { tabela: 'etapas', registro_id: id, acao: 'alteracao', anterior: atual, novo: { ...atual, ...dados } }));
+        return { ok: true, id };
+      }
+      default:
+        return { ok: false, erro: 'Este registro é alterado pelo fluxo específico da sua área.' };
+    }
   }
 
   mudarStatusEdicao(id: number, status: StatusEdicao): Resultado {

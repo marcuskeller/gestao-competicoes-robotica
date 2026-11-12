@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, output, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { StoreService } from '../core/store.service';
 import type { ModuleKey } from './records.config';
@@ -47,7 +47,7 @@ const options = (key: string, label: string, values: string[]): Field => ({
   imports: [FormsModule],
   template: `
     <form class="mt-6 rounded-xl border border-base-300 bg-base-100 p-6" (ngSubmit)="submit()">
-      <h2 class="text-lg font-semibold">Adicionar registro</h2>
+      <h2 class="text-lg font-semibold">{{ record() ? 'Editar registro' : 'Adicionar registro' }}</h2>
       <div class="mt-4 grid gap-4 sm:grid-cols-2">
         @for (f of fields(); track f.key) {
           <label class="block text-sm" [for]="'field-' + f.key"
@@ -96,16 +96,26 @@ const options = (key: string, label: string, values: string[]): Field => ({
       @if (error()) {
         <p role="alert" class="mt-4 text-error">{{ error() }}</p>
       }
-      <button class="btn btn-primary mt-5" type="submit">Salvar</button>
+      <button class="btn btn-primary mt-5" type="submit">{{ record() ? 'Salvar alterações' : 'Salvar' }}</button>
     </form>
   `,
 })
 export class RecordFormComponent {
   readonly store = inject(StoreService);
   readonly module = input.required<ModuleKey>();
+  readonly record = input<Record<string, unknown> | null>(null);
   readonly saved = output<void>();
   readonly error = signal('');
   values: Record<string, string> = {};
+  constructor() {
+    effect(() => {
+      const record = this.record();
+      if (!record) return;
+      this.values = Object.fromEntries(
+        this.fields().map((field) => [field.key, String(record[field.key] ?? '')]),
+      );
+    });
+  }
   readonly fields = computed<Field[]>(() => {
     const db = this.store.db();
     const select = (
@@ -195,6 +205,13 @@ export class RecordFormComponent {
     }
     if (v['data_inicio'] && v['data_fim'] < v['data_inicio']) {
       this.error.set('A data final deve ser igual ou posterior à inicial.');
+      return;
+    }
+    const record = this.record();
+    if (record) {
+      const result = this.store.atualizarRegistroDemo(this.module(), Number(record['id']), v);
+      if (result.ok) this.saved.emit();
+      else this.error.set(result.erro ?? 'Não foi possível atualizar.');
       return;
     }
     const n = (key: string) => Number(v[key]);

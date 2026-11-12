@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { StoreService } from '../core/store.service';
 import { PERFIS } from '../core/permissions';
+import { IconComponent } from '../shared/icon.component';
 import type { TipoConta, Usuario } from '../core/models';
 
 const TIPOS_CONTA: { valor: TipoConta; rotulo: string }[] = [
@@ -27,7 +28,7 @@ const TURNOS_VOLUNTARIO = [
 
 @Component({
   selector: 'app-login',
-  imports: [RouterLink],
+  imports: [RouterLink, IconComponent],
   template: `
     <main class="grid min-h-dvh place-items-center bg-base-200 p-4 grid-pattern sm:p-6">
       <section class="w-full max-w-xl rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm sm:p-8">
@@ -70,10 +71,10 @@ const TURNOS_VOLUNTARIO = [
               Primeiro selecione que tipo de pessoa você é; depois escolha sua conta.
             </p>
             <label class="form-control mt-4 w-full">
-              <span class="label-text mb-1 font-medium">Sou</span>
+              <span class="label-text mb-1 font-medium">Tipo de perfil</span>
               <select
                 class="select select-bordered w-full"
-                aria-label="Tipo de pessoa"
+                aria-label="Tipo de perfil"
                 [value]="tipoLogin()"
                 (change)="atualizarTipoLogin($event)"
               >
@@ -217,21 +218,25 @@ const TURNOS_VOLUNTARIO = [
                     </span>
                   }
                 </label>
-                <label class="form-control w-full">
-                  <span class="label-text mb-1 font-medium">Disponibilidade</span>
-                  <select
-                    class="select select-bordered w-full"
-                    aria-label="Disponibilidade"
-                    required
-                    [value]="disponibilidade()"
-                    (change)="disponibilidade.set(valorDo($event))"
-                  >
-                    <option value="" disabled>Selecione um turno</option>
+                <fieldset class="form-control w-full">
+                  <legend class="label-text mb-2 font-medium">Disponibilidade</legend>
+                  <div class="grid gap-2 sm:grid-cols-2">
                     @for (turno of turnosVoluntario; track turno) {
-                      <option [value]="turno">{{ turno }}</option>
+                      <label class="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-base-300 px-3 py-2 text-sm hover:bg-base-200">
+                        <input
+                          class="checkbox checkbox-primary checkbox-sm"
+                          type="checkbox"
+                          [checked]="disponibilidade().includes(turno)"
+                          (change)="alternarDisponibilidade(turno, $event)"
+                        />
+                        <span>{{ turno }}</span>
+                      </label>
                     }
-                  </select>
-                </label>
+                  </div>
+                  @if (!disponibilidade().length) {
+                    <span class="label-text-alt mt-2">Selecione ao menos um horário disponível.</span>
+                  }
+                </fieldset>
                 <p class="text-xs text-base-content/60">A vaga fica pendente de confirmação da organização.</p>
               }
 
@@ -284,7 +289,8 @@ const TURNOS_VOLUNTARIO = [
         }
 
         <a class="btn btn-ghost mt-5 w-full" routerLink="/publico">
-          Consultar resultados públicos →
+          Consultar resultados públicos
+          <app-icon nome="arrow" classe="size-4" />
         </a>
       </section>
     </main>
@@ -306,7 +312,7 @@ export class LoginComponent {
   readonly cpf = signal('');
   readonly organizacao = signal('');
   readonly telefone = signal('');
-  readonly disponibilidade = signal('');
+  readonly disponibilidade = signal<string[]>([]);
   readonly cnpj = signal('');
   readonly erro = signal('');
 
@@ -341,6 +347,14 @@ export class LoginComponent {
     this.tipoParticipante.set(this.valorDo(event) as 'pessoa_fisica' | 'escola');
   }
 
+  alternarDisponibilidade(turno: string, event: Event): void {
+    const selecionado = (event.target as HTMLInputElement).checked;
+    const atual = this.disponibilidade();
+    this.disponibilidade.set(selecionado
+      ? [...atual, turno]
+      : atual.filter((item) => item !== turno));
+  }
+
   valorDo(event: Event): string {
     return (event.target as HTMLInputElement | HTMLSelectElement).value;
   }
@@ -371,7 +385,7 @@ export class LoginComponent {
       cpf: this.cpf(),
       organizacao: this.organizacao(),
       telefone: this.telefone(),
-      disponibilidade: this.disponibilidade(),
+      disponibilidade: this.disponibilidade().join(', '),
       cargo_voluntario_id: Number(this.cargoVoluntarioId()),
       tipo_participante: this.tipoParticipante(),
       cnpj: this.cnpj(),

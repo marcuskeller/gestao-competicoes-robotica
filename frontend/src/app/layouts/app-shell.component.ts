@@ -80,13 +80,13 @@ interface GrupoNav {
         } @else {
           <nav class="scrollbar-thin flex-1 overflow-y-auto px-3 py-4">
           @for (grupo of grupos; track grupo.titulo) {
-            <p
-              class="mb-1 mt-4 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-base-content/40 first:mt-0"
-            >
-              {{ grupo.titulo }}
-            </p>
-            @for (item of grupo.itens; track item.rota) {
-              @if (!item.acao || store.podeFazer(item.acao)) {
+            @if (itensVisiveis(grupo).length) {
+              <p
+                class="mb-1 mt-4 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-base-content/40 first:mt-0"
+              >
+                {{ grupo.titulo }}
+              </p>
+              @for (item of itensVisiveis(grupo); track item.rota) {
                 <a
                   [routerLink]="item.rota"
                   routerLinkActive="bg-primary/10 text-primary"
@@ -259,6 +259,10 @@ export class AppShellComponent {
 
   rotuloPerfil(perfil: keyof typeof PERFIS): string {
     return PERFIS[perfil].rotulo;
+  }
+
+  itensVisiveis(grupo: GrupoNav): ItemNav[] {
+    return grupo.itens.filter((item) => !item.acao || this.store.podeFazer(item.acao));
   }
 
   iniciais(nome: string): string {

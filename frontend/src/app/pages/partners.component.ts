@@ -248,7 +248,7 @@ import type { Parceria, Resultado } from '../core/models';
       <h2 id="titulo-propostas" class="text-xl font-semibold">Apoios e propostas</h2>
       <div class="mt-4 grid gap-3">
         @for (proposta of propostas(); track proposta.id) {
-          <article class="rounded-xl border border-base-300 bg-base-100 p-4 sm:p-5">
+          <article class="cursor-pointer rounded-xl border border-base-300 bg-base-100 p-4 transition-colors hover:bg-base-100/70 sm:p-5" tabindex="0" [attr.aria-label]="'Ver detalhes da proposta ' + rotuloTipo(proposta.tipo_apoio ?? 'financeiro')" (click)="abrirDetalhesProposta($event, proposta.id)" (keydown.enter)="abrirDetalhesProposta($event, proposta.id)" (keydown.space)="abrirDetalhesProposta($event, proposta.id)">
             <div class="flex flex-wrap items-start justify-between gap-3">
               <div class="min-w-0">
                 <h3 class="font-semibold">{{ rotuloTipo(proposta.tipo_apoio ?? 'financeiro') }}</h3>
@@ -273,6 +273,45 @@ import type { Parceria, Resultado } from '../core/models';
       </div>
     </section>
 
+    @if (propostaSelecionada(); as proposta) {
+      <div class="modal modal-open" role="dialog" aria-modal="true" aria-labelledby="titulo-detalhes-proposta">
+        <div class="modal-box max-h-[90vh] max-w-2xl overflow-y-auto">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-primary">Detalhes do apoio</p>
+              <h2 id="titulo-detalhes-proposta" class="mt-1 text-2xl font-semibold">{{ rotuloTipo(proposta.tipo_apoio ?? 'financeiro') }}</h2>
+            </div>
+            <button class="btn btn-ghost btn-sm" type="button" (click)="propostaSelecionadaId.set(null)">Fechar</button>
+          </div>
+          <dl class="mt-5 grid gap-3 sm:grid-cols-2">
+            <div class="rounded-lg bg-base-200 p-4">
+              <dt class="text-xs uppercase tracking-wide text-base-content/55">Situação</dt>
+              <dd class="mt-1 font-medium">{{ rotuloStatus(proposta.status) }}</dd>
+            </div>
+            @if (proposta.valor_proposto > 0) {
+              <div class="rounded-lg bg-base-200 p-4">
+                <dt class="text-xs uppercase tracking-wide text-base-content/55">Valor demonstrativo</dt>
+                <dd class="mt-1 font-medium">{{ proposta.valor_proposto | currency: 'BRL' }}</dd>
+              </div>
+            }
+            @if (proposta.metodo_pagamento) {
+              <div class="rounded-lg bg-base-200 p-4">
+                <dt class="text-xs uppercase tracking-wide text-base-content/55">Forma de pagamento</dt>
+                <dd class="mt-1 font-medium">{{ rotuloMetodoPagamento(proposta.metodo_pagamento) }}</dd>
+              </div>
+            }
+            @if (proposta.descricao_doacao || proposta.mensagem) {
+              <div class="rounded-lg border border-base-300 p-4 sm:col-span-2">
+                <dt class="text-xs uppercase tracking-wide text-base-content/55">Descrição</dt>
+                <dd class="mt-2 whitespace-pre-wrap break-words text-sm">{{ proposta.descricao_doacao || proposta.mensagem }}</dd>
+              </div>
+            }
+          </dl>
+        </div>
+        <button class="modal-backdrop" type="button" aria-label="Fechar detalhes da proposta" (click)="propostaSelecionadaId.set(null)"></button>
+      </div>
+    }
+
     <a class="btn btn-outline mt-6" routerLink="/publico">Consultar resultados públicos</a>
   `,
 })
@@ -296,6 +335,11 @@ export class PartnersComponent {
   readonly codigoSegurancaCartao = signal('');
   readonly mensagem = signal('');
   readonly resultado = signal<Resultado | null>(null);
+  readonly propostaSelecionadaId = signal<number | null>(null);
+  readonly propostaSelecionada = computed(() => {
+    const id = this.propostaSelecionadaId();
+    return id === null ? null : this.propostas().find((item) => item.id === id) ?? null;
+  });
   readonly propostas = computed(() => {
     const usuarioId = this.store.usuario()?.id;
     return this.store.db().parcerias.filter((item) => item.usuario_id === usuarioId);
@@ -303,6 +347,13 @@ export class PartnersComponent {
 
   valorDo(event: Event): string {
     return (event.target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement).value;
+  }
+
+  abrirDetalhesProposta(event: Event, id: number): void {
+    if (event instanceof KeyboardEvent) event.preventDefault();
+    const elemento = event.target;
+    if (!(elemento instanceof HTMLElement) || elemento.closest('button, a, input, select, textarea')) return;
+    this.propostaSelecionadaId.set(id);
   }
 
   selecionarTipoApoio(event: Event): void {

@@ -1,10 +1,11 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { StoreService } from '../core/store.service';
-import { PERFIS, PERMISSOES } from '../core/permissions';
-import type { TipoConta, Usuario } from '../core/models';
+import { PERFIS, PERMISSOES, PERMISSOES_PADRAO_VOLUNTARIO } from '../core/permissions';
+import type { Parceria, TipoConta, Usuario } from '../core/models';
 
 type Aba = 'voluntarios' | 'parcerias' | 'participantes' | 'cargos';
+type TipoDetalheLista = 'voluntarios' | 'parcerias' | 'participantes' | 'cargos';
 
 const PERMISSOES_VOLUNTARIO = [
   { chave: 'disputa.ver', rotulo: 'Consultar disputas' },
@@ -15,6 +16,31 @@ const PERMISSOES_VOLUNTARIO = [
   { chave: 'etapa.editar', rotulo: 'Gerenciar etapas' },
   { chave: 'homologar', rotulo: 'Homologar resultados' },
   { chave: 'publicar', rotulo: 'Publicar resultados' },
+  { chave: 'dashboard.interno', rotulo: 'Acessar visão geral administrativa' },
+  { chave: 'edicao.ver', rotulo: 'Consultar edições' },
+  { chave: 'edicao.status', rotulo: 'Alterar fase da edição' },
+  { chave: 'edicao.criar', rotulo: 'Criar edições' },
+  { chave: 'edicao.excluir', rotulo: 'Excluir edições' },
+  { chave: 'modalidade.ver', rotulo: 'Consultar modalidades e critérios' },
+  { chave: 'regras.ver', rotulo: 'Consultar regulamentos' },
+  { chave: 'escolas.ver', rotulo: 'Consultar escolas' },
+  { chave: 'equipes.ver', rotulo: 'Consultar equipes e participantes' },
+  { chave: 'etapa.ver', rotulo: 'Consultar etapas' },
+  { chave: 'resultados.ver', rotulo: 'Consultar resultados internos' },
+  { chave: 'publicacao.ver', rotulo: 'Consultar homologação e publicação' },
+  { chave: 'retificar', rotulo: 'Retificar resultados publicados' },
+  { chave: 'auditoria.ver', rotulo: 'Consultar trilha de auditoria' },
+  { chave: 'interop.ver', rotulo: 'Consultar interoperabilidade' },
+  { chave: 'edicao.editar', rotulo: 'Administrar edições' },
+  { chave: 'modalidade.editar', rotulo: 'Administrar modalidades' },
+  { chave: 'criterio.editar', rotulo: 'Administrar critérios' },
+  { chave: 'regra.publicar', rotulo: 'Publicar regulamentos' },
+  { chave: 'escola.editar', rotulo: 'Administrar escolas' },
+  { chave: 'equipe.editar', rotulo: 'Administrar equipes e participantes' },
+  { chave: 'chaveamento.gerar', rotulo: 'Gerar chaveamentos' },
+  { chave: 'disputa.editar', rotulo: 'Administrar disputas' },
+  { chave: 'usuarios.gerenciar', rotulo: 'Administrar usuários e acessos' },
+  { chave: 'cargos.gerenciar', rotulo: 'Administrar cargos e vagas' },
 ] as const;
 
 @Component({
@@ -41,7 +67,7 @@ const PERMISSOES_VOLUNTARIO = [
     @if (aba() === 'voluntarios') {
       <section class="mt-5 grid gap-4">
         @for (item of voluntarios(); track item.usuario.id) {
-          <article class="rounded-xl border border-base-300 bg-base-100 p-4 sm:p-5">
+          <article class="cursor-pointer rounded-xl border border-base-300 bg-base-100 p-4 transition-colors hover:bg-base-100/70 sm:p-5" tabindex="0" [attr.aria-label]="'Ver dados de ' + item.usuario.nome" (click)="abrirDetalhesLista('voluntarios', item.usuario.id, $event)" (keydown.enter)="abrirDetalhesLista('voluntarios', item.usuario.id, $event)" (keydown.space)="abrirDetalhesLista('voluntarios', item.usuario.id, $event)">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div class="min-w-0">
                 <h2 class="font-semibold">{{ item.usuario.nome }}</h2>
@@ -80,18 +106,18 @@ const PERMISSOES_VOLUNTARIO = [
     @if (aba() === 'parcerias') {
       <section class="mt-5 grid gap-3">
         @for (item of parcerias(); track item.parceria.id) {
-          <article class="rounded-xl border border-base-300 bg-base-100 p-4 sm:p-5">
+          <article class="cursor-pointer rounded-xl border border-base-300 bg-base-100 p-4 transition-colors hover:bg-base-100/70 sm:p-5" tabindex="0" [attr.aria-label]="'Ver dados do apoio de ' + (item.usuario?.organizacao || item.usuario?.nome)" (click)="abrirDetalhesLista('parcerias', item.parceria.id, $event)" (keydown.enter)="abrirDetalhesLista('parcerias', item.parceria.id, $event)" (keydown.space)="abrirDetalhesLista('parcerias', item.parceria.id, $event)">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div class="min-w-0">
                 <h2 class="font-semibold">{{ item.usuario?.organizacao || item.usuario?.nome }}</h2>
                 <p class="break-all text-sm text-base-content/60">{{ item.usuario?.email }} · CNPJ {{ item.parceria.cnpj }}</p>
-                <p class="mt-2 text-sm">{{ rotuloTipoApoio(item.parceria.tipo_apoio) }} · {{ rotuloStatusParceria(item.parceria.status) }}</p>
+                <p class="mt-2 text-sm">{{ rotuloTipoApoio(item.parceria.tipo_apoio) }} · {{ rotuloStatusParceria(item.parceria.status, item.parceria.tipo_apoio) }}</p>
                 @if (item.parceria.valor_proposto > 0) {
                   <p class="mt-1 font-semibold">{{ item.parceria.valor_proposto | currency: 'BRL' }}</p>
                 }
                 <p class="mt-1 whitespace-pre-wrap text-sm text-base-content/60">{{ item.parceria.descricao_doacao || item.parceria.mensagem }}</p>
               </div>
-              @if (item.parceria.status === 'em_analise') {
+              @if (item.parceria.status === 'em_analise' && !ehApoioFinanceiro(item.parceria)) {
                 <div class="flex shrink-0 gap-2">
                   <button class="btn btn-primary btn-sm min-h-11 sm:min-h-8" (click)="avaliarParceria(item.parceria.id, 'aprovada')">Aprovar</button>
                   <button class="btn btn-ghost btn-sm min-h-11 sm:min-h-8 text-error" (click)="avaliarParceria(item.parceria.id, 'recusada')">Recusar</button>
@@ -108,7 +134,7 @@ const PERMISSOES_VOLUNTARIO = [
     @if (aba() === 'participantes') {
       <section class="mt-5 grid gap-3">
         @for (item of participantes(); track item.usuario.id) {
-          <article class="rounded-xl border border-base-300 bg-base-100 p-4 sm:p-5">
+          <article class="cursor-pointer rounded-xl border border-base-300 bg-base-100 p-4 transition-colors hover:bg-base-100/70 sm:p-5" tabindex="0" [attr.aria-label]="'Ver dados de ' + (item.usuario.organizacao || item.usuario.nome)" (click)="abrirDetalhesLista('participantes', item.usuario.id, $event)" (keydown.enter)="abrirDetalhesLista('participantes', item.usuario.id, $event)" (keydown.space)="abrirDetalhesLista('participantes', item.usuario.id, $event)">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div class="min-w-0">
                 <span class="badge badge-outline">{{ item.usuario.tipo_participante === 'escola' ? 'Escola / CNPJ' : 'Pessoa física' }}</span>
@@ -151,7 +177,7 @@ const PERMISSOES_VOLUNTARIO = [
 
         <div class="grid gap-3">
           @for (cargo of cargos(); track cargo.id) {
-            <article class="rounded-xl border border-base-300 bg-base-100 p-4">
+            <article class="cursor-pointer rounded-xl border border-base-300 bg-base-100 p-4 transition-colors hover:bg-base-100/70" tabindex="0" [attr.aria-label]="'Ver detalhes do cargo ' + cargo.nome" (click)="abrirDetalhesLista('cargos', cargo.id, $event)" (keydown.enter)="abrirDetalhesLista('cargos', cargo.id, $event)" (keydown.space)="abrirDetalhesLista('cargos', cargo.id, $event)">
               <div class="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <h3 class="font-semibold">{{ cargo.nome }}</h3>
@@ -168,6 +194,32 @@ const PERMISSOES_VOLUNTARIO = [
         </div>
       </section>
     }
+
+    @if (detalhesLista(); as detalhes) {
+      <div class="modal modal-open" role="dialog" aria-modal="true" aria-labelledby="titulo-detalhes-lista">
+        <div class="modal-box max-h-[90vh] max-w-2xl overflow-y-auto">
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-xs font-semibold uppercase tracking-wide text-primary">{{ detalhes.categoria }}</p>
+              <h2 id="titulo-detalhes-lista" class="mt-1 break-words text-2xl font-semibold">{{ detalhes.titulo }}</h2>
+            </div>
+            <button class="btn btn-ghost btn-sm shrink-0" type="button" (click)="fecharDetalhesLista()">Fechar</button>
+          </div>
+          <dl class="mt-5 grid gap-3 sm:grid-cols-2">
+            @for (campo of detalhes.campos; track campo.rotulo) {
+              <div class="min-w-0 rounded-lg bg-base-200 p-4">
+                <dt class="text-xs uppercase tracking-wide text-base-content/55">{{ campo.rotulo }}</dt>
+                <dd class="mt-1 break-words font-medium">{{ campo.valor }}</dd>
+              </div>
+            }
+          </dl>
+          <p class="mt-5 border-t border-base-300 pt-4 text-sm text-base-content/60">
+            Permissões, análise de inscrições e vagas podem ser alteradas pelos controles da lista.
+          </p>
+        </div>
+        <button class="modal-backdrop" type="button" aria-label="Fechar detalhes" (click)="fecharDetalhesLista()"></button>
+      </div>
+    }
   `,
 })
 export class UsersComponent {
@@ -179,6 +231,81 @@ export class UsersComponent {
   readonly nomeCargo = signal('');
   readonly descricaoCargo = signal('');
   readonly vagasCargo = signal('');
+  readonly selecaoLista = signal<{ tipo: TipoDetalheLista; id: number } | null>(null);
+  readonly detalhesLista = computed(() => {
+    const selecao = this.selecaoLista();
+    if (!selecao) return null;
+    const db = this.store.db();
+    if (selecao.tipo === 'voluntarios') {
+      const usuario = db.usuarios.find((item) => item.id === selecao.id);
+      if (!usuario) return null;
+      const inscricao = db.inscricoesVoluntarios.find((item) => item.usuario_id === usuario.id);
+      const cargo = inscricao && db.cargosVoluntarios.find((item) => item.id === inscricao.cargo_id);
+      return {
+        categoria: 'Voluntariado',
+        titulo: usuario.nome,
+        campos: [
+          { rotulo: 'E-mail', valor: usuario.email },
+          { rotulo: 'Perfil de acesso', valor: this.perfis[usuario.perfil].rotulo },
+          { rotulo: 'CPF', valor: inscricao?.cpf || 'Não informado' },
+          { rotulo: 'Telefone', valor: inscricao?.telefone || usuario.telefone || 'Não informado' },
+          { rotulo: 'Cargo', valor: cargo?.nome || 'Não selecionado' },
+          { rotulo: 'Inscrição', valor: inscricao ? this.rotuloStatusVoluntario(inscricao.status) : 'Não cadastrada' },
+          { rotulo: 'Disponibilidade', valor: inscricao?.disponibilidade || 'Não informada' },
+        ],
+      };
+    }
+    if (selecao.tipo === 'parcerias') {
+      const parceria = db.parcerias.find((item) => item.id === selecao.id);
+      if (!parceria) return null;
+      const usuario = db.usuarios.find((item) => item.id === parceria.usuario_id);
+      return {
+        categoria: 'Apoio ao campeonato',
+        titulo: usuario?.organizacao || usuario?.nome || 'Empresa apoiadora',
+        campos: [
+          { rotulo: 'Contato', valor: usuario?.nome || 'Não informado' },
+          { rotulo: 'E-mail', valor: usuario?.email || 'Não informado' },
+          { rotulo: 'CNPJ', valor: parceria.cnpj || 'Não informado' },
+          { rotulo: 'Tipo de apoio', valor: this.rotuloTipoApoio(parceria.tipo_apoio) },
+          { rotulo: 'Situação', valor: this.rotuloStatusParceria(parceria.status, parceria.tipo_apoio) },
+          { rotulo: 'Valor demonstrativo', valor: parceria.valor_proposto ? `R$ ${parceria.valor_proposto.toFixed(2)}` : 'Não informado' },
+          { rotulo: 'Descrição', valor: parceria.descricao_doacao || parceria.mensagem || 'Não informada' },
+          { rotulo: 'Forma de pagamento', valor: parceria.metodo_pagamento?.replaceAll('_', ' ') || 'Não se aplica' },
+        ],
+      };
+    }
+    if (selecao.tipo === 'participantes') {
+      const usuario = db.usuarios.find((item) => item.id === selecao.id);
+      if (!usuario) return null;
+      return {
+        categoria: usuario.tipo_participante === 'escola' ? 'Escola participante' : 'Participante',
+        titulo: usuario.organizacao || usuario.nome,
+        campos: [
+          { rotulo: 'Contato', valor: usuario.nome },
+          { rotulo: 'E-mail', valor: usuario.email },
+          { rotulo: 'Telefone', valor: usuario.telefone || 'Não informado' },
+          { rotulo: 'Tipo de cadastro', valor: usuario.tipo_participante === 'escola' ? 'Escola' : 'Pessoa física' },
+          { rotulo: 'CNPJ', valor: usuario.cnpj || 'Não se aplica' },
+          { rotulo: 'Equipes cadastradas', valor: String(db.equipes.filter((item) => item.responsavel_usuario_id === usuario.id).length) },
+          { rotulo: 'Inscrições anteriores', valor: String(db.cadastrosParticipantes.filter((item) => item.usuario_id === usuario.id).length) },
+        ],
+      };
+    }
+    const cargo = db.cargosVoluntarios.find((item) => item.id === selecao.id);
+    if (!cargo) return null;
+    const ocupadas = db.inscricoesVoluntarios.filter((item) => item.cargo_id === cargo.id && item.status !== 'rejeitada').length;
+    return {
+      categoria: 'Cargo voluntário',
+      titulo: cargo.nome,
+      campos: [
+        { rotulo: 'Descrição', valor: cargo.descricao || 'Não informada' },
+        { rotulo: 'Vagas totais', valor: String(cargo.vagas_total) },
+        { rotulo: 'Vagas ocupadas', valor: String(ocupadas) },
+        { rotulo: 'Vagas restantes', valor: String(Math.max(0, cargo.vagas_total - ocupadas)) },
+        { rotulo: 'Situação', valor: cargo.ativo ? 'Ativo' : 'Inativo' },
+      ],
+    };
+  });
 
   readonly voluntarios = computed(() => {
     const db = this.store.db();
@@ -218,15 +345,31 @@ export class UsersComponent {
     return (event.target as HTMLInputElement | HTMLTextAreaElement).value;
   }
 
+  abrirDetalhesLista(tipo: TipoDetalheLista, id: number, event: Event): void {
+    if (event instanceof KeyboardEvent) event.preventDefault();
+    const elemento = event.target;
+    if (!(elemento instanceof HTMLElement) || elemento.closest('button, a, input, select, textarea, details, summary')) return;
+    this.selecaoLista.set({ tipo, id });
+  }
+
+  fecharDetalhesLista(): void {
+    this.selecaoLista.set(null);
+  }
+
   temPermissao(usuario: Usuario, chave: string): boolean {
+    if (usuario.tipo_conta === 'voluntario') {
+      return (usuario.permissoes ?? PERMISSOES_PADRAO_VOLUNTARIO[usuario.perfil] ?? []).includes(chave);
+    }
     return usuario.permissoes?.includes(chave) ?? (PERMISSOES[chave] ?? []).includes(usuario.perfil);
   }
 
   alternarPermissao(usuario: Usuario, chave: string, event: Event): void {
     const selecionado = (event.target as HTMLInputElement).checked;
-    const atuais = usuario.permissoes ?? Object.entries(PERMISSOES)
-      .filter(([, perfis]) => perfis.includes(usuario.perfil))
-      .map(([permissao]) => permissao);
+    const atuais = usuario.permissoes ?? (usuario.tipo_conta === 'voluntario'
+      ? [...(PERMISSOES_PADRAO_VOLUNTARIO[usuario.perfil] ?? [])]
+      : Object.entries(PERMISSOES)
+        .filter(([, perfis]) => perfis.includes(usuario.perfil))
+        .map(([permissao]) => permissao));
     const atualizadas = selecionado
       ? [...atuais, chave]
       : atuais.filter((item) => item !== chave);
@@ -266,7 +409,12 @@ export class UsersComponent {
     return ({ pendente: 'Aguardando análise', aprovada: 'Aprovada', rejeitada: 'Recusada' } as Record<string, string>)[status] ?? status;
   }
 
-  rotuloStatusParceria(status: string): string {
+  ehApoioFinanceiro(parceria: Parceria): boolean {
+    return parceria.tipo_apoio === 'financeiro' || (!parceria.tipo_apoio && parceria.valor_proposto > 0);
+  }
+
+  rotuloStatusParceria(status: string, tipo?: Parceria['tipo_apoio']): string {
+    if (tipo === 'financeiro' && status !== 'contribuicao_demo') return 'Contribuição direta · demonstração';
     return ({ em_analise: 'Em análise', aprovada: 'Aprovada', recusada: 'Recusada', contribuicao_demo: 'Contribuição simulada' } as Record<string, string>)[status] ?? status;
   }
 

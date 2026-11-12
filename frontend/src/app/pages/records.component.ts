@@ -119,13 +119,12 @@ import type { Resultado, StatusEdicao } from '../core/models';
           <tbody>
             @for (row of filteredRows(); track row['id']) {
               <tr
-                [class.cursor-pointer]="module() === 'equipes'"
-                [class.hover:bg-base-200]="module() === 'equipes'"
-                [attr.tabindex]="module() === 'equipes' ? 0 : null"
-                [attr.aria-label]="module() === 'equipes' ? 'Ver detalhes da equipe ' + display(row['nome']) : null"
-                (click)="abrirEquipeDaLinha($event)"
-                (keydown.enter)="abrirEquipeDaLinha($event)"
-                (keydown.space)="abrirEquipeDaLinha($event)"
+                class="cursor-pointer hover:bg-base-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                tabindex="0"
+                [attr.aria-label]="'Ver detalhes: ' + config().title + ' — ' + rotuloRegistro(row)"
+                (click)="abrirDetalhesDaLinha($event, row)"
+                (keydown.enter)="abrirDetalhesDaLinha($event, row)"
+                (keydown.space)="abrirDetalhesDaLinha($event, row)"
               >
                 @for (column of config().columns; track column.key) {
                   <td class="max-w-sm whitespace-normal break-words">
@@ -278,6 +277,45 @@ import type { Resultado, StatusEdicao } from '../core/models';
       <p class="mt-3 text-xs text-base-content/50">
         {{ filteredRows().length }} registro(s) · Dados de demonstração neste navegador.
       </p>
+      @if (registroSelecionado(); as registro) {
+        <div class="modal modal-open" role="dialog" aria-modal="true" aria-labelledby="titulo-detalhes-registro">
+          <div class="modal-box max-h-[90vh] max-w-3xl overflow-y-auto">
+            <div class="flex items-start justify-between gap-4">
+              <div class="min-w-0">
+                <p class="text-xs font-semibold uppercase tracking-wide text-primary">{{ config().title }}</p>
+                <h2 id="titulo-detalhes-registro" class="mt-1 break-words text-2xl font-semibold">{{ rotuloRegistro(registro) }}</h2>
+              </div>
+              <button class="btn btn-ghost btn-sm shrink-0" type="button" (click)="fecharDetalhesRegistro()">Fechar</button>
+            </div>
+            @if (editandoRegistro()) {
+              <app-record-form [module]="module()" [record]="registro" (saved)="finalizarEdicaoRegistro()" />
+            } @else {
+              <dl class="mt-5 grid gap-3 sm:grid-cols-2">
+                @for (column of config().columns; track column.key) {
+                  <div class="min-w-0 rounded-lg bg-base-200 p-4">
+                    <dt class="text-xs uppercase tracking-wide text-base-content/55">{{ column.label }}</dt>
+                    <dd class="mt-1 break-words font-medium">
+                      @if (column.key === 'status') {
+                        <app-status-badge [status]="display(registro[column.key])" />
+                      } @else {
+                        {{ display(registro[column.key]) }}
+                      }
+                    </dd>
+                  </div>
+                }
+              </dl>
+              <div class="mt-5 flex flex-col-reverse gap-2 border-t border-base-300 pt-4 sm:flex-row sm:justify-end">
+                @if (podeEditarRegistro()) {
+                  <button class="btn btn-primary min-h-11" type="button" (click)="editandoRegistro.set(true)">Editar dados</button>
+                } @else {
+                  <p class="text-sm text-base-content/60">As alterações deste registro seguem as ações disponíveis na lista.</p>
+                }
+              </div>
+            }
+          </div>
+          <button class="modal-backdrop" type="button" aria-label="Fechar detalhes do registro" (click)="fecharDetalhesRegistro()"></button>
+        </div>
+      }
     }
     @if (reasonAction()) {
       <form
@@ -311,6 +349,12 @@ export class RecordsComponent {
   readonly module = computed(() => this.routeData()?.['modulo'] as ModuleKey);
   readonly config = computed(() => moduleConfig(this.module()));
   readonly search = signal('');
+  readonly registroSelecionadoId = signal<number | null>(null);
+  readonly editandoRegistro = signal(false);
+  readonly registroSelecionado = computed(() => {
+    const id = this.registroSelecionadoId();
+    return id === null ? null : this.rows().find((row) => Number(row['id']) === id) ?? null;
+  });
   readonly formOpen = signal(false);
   readonly message = signal<Resultado | null>(null);
   readonly stageId = signal(this.store.db().etapas[0]?.id ?? 0);
@@ -362,6 +406,8 @@ export class RecordsComponent {
       this.search.set('');
       this.message.set(null);
       this.reasonAction.set(null);
+      this.registroSelecionadoId.set(null);
+      this.editandoRegistro.set(false);
     });
   }
   display(value: unknown): string {
@@ -373,6 +419,44 @@ export class RecordsComponent {
   }
   number(value: unknown): number {
     return Number(value);
+  }
+  rotuloRegistro(row: Record<string, unknown>): string {
+    const titulo = row['nome'] ?? row['titulo'] ?? row['equipe'] ?? row['codigo'] ?? row['identificador_publico'] ?? row['id'];
+    return this.display(titulo);
+  }
+  abrirDetalhesDaLinha(event: Event, row: Record<string, unknown>): void {
+    if (event instanceof KeyboardEvent) event.preventDefault();
+    const elemento = event.target;
+    if (!(elemento instanceof HTMLElement) || elemento.closest('button, a, input, select, textarea')) return;
+    if (this.module() === 'equipes') {
+      const linha = event.currentTarget;
+      if (linha instanceof HTMLElement) linha.querySelector<HTMLButtonElement>('app-team-details button')?.click();
+      return;
+    }
+    this.registroSelecionadoId.set(Number(row['id']));
+    this.editandoRegistro.set(false);
+  }
+  fecharDetalhesRegistro(): void {
+    this.registroSelecionadoId.set(null);
+    this.editandoRegistro.set(false);
+  }
+  finalizarEdicaoRegistro(): void {
+    this.fecharDetalhesRegistro();
+    this.message.set({ ok: true, erro: 'Registro atualizado.' });
+  }
+  podeEditarRegistro(): boolean {
+    const permissao: Partial<Record<ModuleKey, string>> = {
+      edicoes: 'edicao.editar',
+      modalidades: 'modalidade.editar',
+      criterios: 'criterio.editar',
+      desempates: 'criterio.editar',
+      escolas: 'escola.editar',
+      equipes: 'equipe.editar',
+      participantes: 'equipe.editar',
+      etapas: 'etapa.editar',
+    };
+    const chave = permissao[this.module()];
+    return !!chave && this.store.podeFazer(chave);
   }
   equipe(id: number): string {
     return this.store.db().equipes.find((e) => e.id === id)?.nome ?? '—';

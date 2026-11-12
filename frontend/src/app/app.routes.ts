@@ -21,7 +21,7 @@ export const routes: Routes = [
     canActivateChild: [permissionGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
-      { path: 'dashboard', component: OverviewComponent },
+      { path: 'dashboard', component: OverviewComponent, data: { permission: 'dashboard.interno' } },
       {
         path: 'minha-conta',
         loadComponent: () => import('./pages/account.component').then((m) => m.AccountComponent),

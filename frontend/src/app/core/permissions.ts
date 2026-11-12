@@ -12,6 +12,13 @@ export const PERFIS: Record<Perfil, { rotulo: string; cor: string }> = {
 
 const TODOS: Perfil[] = ['administrador', 'organizador', 'mesario', 'homologador'];
 
+export const PERMISSOES_PADRAO_VOLUNTARIO: Partial<Record<Perfil, string[]>> = {
+  organizador: ['voluntario.portal'],
+  mesario: ['voluntario.portal', 'disputa.ver', 'resultados.ver', 'resultado.lancar'],
+  homologador: ['voluntario.portal', 'publicacao.ver', 'homologar', 'publicar', 'retificar'],
+  voluntario: ['voluntario.portal'],
+};
+
 export const PERMISSOES: Record<string, Perfil[]> = {
   'dashboard.interno': TODOS,
   'edicao.ver': ['administrador', 'organizador'],

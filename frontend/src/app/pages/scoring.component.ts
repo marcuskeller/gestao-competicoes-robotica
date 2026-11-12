@@ -3,13 +3,17 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { StoreService } from '../core/store.service';
 import { TeamDetailsComponent } from '../shared/team-details.component';
+import { IconComponent } from '../shared/icon.component';
 import type { Resultado } from '../core/models';
 
 @Component({
   selector: 'app-scoring',
-  imports: [FormsModule, RouterLink, TeamDetailsComponent],
+  imports: [FormsModule, RouterLink, TeamDetailsComponent, IconComponent],
   template: `
-    <a routerLink="/app/disputas" class="btn btn-ghost btn-sm mb-5">← Disputas</a>
+    <a routerLink="/app/disputas" class="btn btn-ghost btn-sm mb-5">
+      <app-icon nome="arrow" classe="size-4 rotate-180" />
+      Disputas
+    </a>
     @if (match(); as disputa) {
       <h1 class="text-3xl font-semibold">Pontuação · {{ disputa.codigo }}</h1>
       <p class="mt-2 text-base-content/60">

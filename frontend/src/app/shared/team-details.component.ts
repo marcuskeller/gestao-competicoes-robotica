@@ -1,5 +1,6 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { StoreService } from '../core/store.service';
+import type { Equipe } from '../core/models';
 import { StatusBadgeComponent } from './status-badge.component';
 
 @Component({
@@ -57,6 +58,43 @@ import { StatusBadgeComponent } from './status-badge.component';
             }
           </dl>
 
+          @if (store.podeFazer('equipe.editar')) {
+            <section class="mt-5 rounded-xl border border-base-300 p-4">
+              @if (!editando()) {
+                <button class="btn btn-outline btn-sm" type="button" (click)="iniciarEdicao(item)">Editar dados da equipe</button>
+              } @else {
+                <h3 class="text-lg font-semibold">Editar equipe</h3>
+                <div class="mt-3 grid gap-3">
+                  <label class="form-control w-full">
+                    <span class="label-text mb-1 font-medium">Nome da equipe</span>
+                    <input class="input input-bordered w-full" [value]="nomeEdicao()" (input)="nomeEdicao.set(valorDo($event))" />
+                  </label>
+                  <label class="form-control w-full">
+                    <span class="label-text mb-1 font-medium">Escola</span>
+                    <select class="select select-bordered w-full" [value]="escolaEdicao()" (change)="escolaEdicao.set(+valorDo($event))">
+                      @for (escola of store.db().escolas; track escola.id) {
+                        <option [value]="escola.id">{{ escola.nome }}</option>
+                      }
+                    </select>
+                  </label>
+                  <label class="form-control w-full">
+                    <span class="label-text mb-1 font-medium">Edição</span>
+                    <select class="select select-bordered w-full" [value]="edicaoEdicao()" (change)="edicaoEdicao.set(+valorDo($event))">
+                      @for (edicao of store.db().edicoes; track edicao.id) {
+                        <option [value]="edicao.id">{{ edicao.nome }}</option>
+                      }
+                    </select>
+                  </label>
+                  @if (erroEdicao()) { <p role="alert" class="text-sm text-error">{{ erroEdicao() }}</p> }
+                  <div class="flex flex-wrap justify-end gap-2">
+                    <button class="btn btn-ghost" type="button" (click)="editando.set(false)">Cancelar</button>
+                    <button class="btn btn-primary" type="button" (click)="salvarEdicao()">Salvar alterações</button>
+                  </div>
+                </div>
+              }
+            </section>
+          }
+
           <section class="mt-6" aria-labelledby="titulo-integrantes-equipe">
             <h3 id="titulo-integrantes-equipe" class="text-lg font-semibold">Integrantes ({{ item.integrantes.length }})</h3>
             @if (item.integrantes.length) {
@@ -81,12 +119,17 @@ import { StatusBadgeComponent } from './status-badge.component';
   `,
 })
 export class TeamDetailsComponent {
-  private readonly store = inject(StoreService);
+  readonly store = inject(StoreService);
   readonly equipeId = input.required<number>();
   readonly equipeNome = input('');
   readonly inscricaoId = input<number | undefined>();
   readonly classe = input('link link-primary text-left');
   readonly aberto = signal(false);
+  readonly editando = signal(false);
+  readonly nomeEdicao = signal('');
+  readonly escolaEdicao = signal(0);
+  readonly edicaoEdicao = signal(0);
+  readonly erroEdicao = signal('');
   readonly nome = computed(
     () => this.equipeNome() || this.store.db().equipes.find((item) => item.id === this.equipeId())?.nome || 'Equipe',
   );
@@ -115,5 +158,31 @@ export class TeamDetailsComponent {
       tecnico: 'Técnico(a)',
     };
     return rotulos[papel] ?? papel;
+  }
+
+  valorDo(event: Event): string {
+    return (event.target as HTMLInputElement | HTMLSelectElement).value;
+  }
+
+  iniciarEdicao(item: { equipe: Equipe }): void {
+    this.nomeEdicao.set(item.equipe.nome);
+    this.escolaEdicao.set(item.equipe.escola_id);
+    this.edicaoEdicao.set(item.equipe.edicao_id);
+    this.erroEdicao.set('');
+    this.editando.set(true);
+  }
+
+  salvarEdicao(): void {
+    const resultado = this.store.atualizarRegistroDemo('equipes', this.equipeId(), {
+      nome: this.nomeEdicao(),
+      escola_id: String(this.escolaEdicao()),
+      edicao_id: String(this.edicaoEdicao()),
+    });
+    if (!resultado.ok) {
+      this.erroEdicao.set(resultado.erro ?? 'Não foi possível salvar as alterações.');
+      return;
+    }
+    this.erroEdicao.set('');
+    this.editando.set(false);
   }
 }

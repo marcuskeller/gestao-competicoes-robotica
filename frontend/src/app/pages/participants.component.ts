@@ -100,7 +100,14 @@ import type { Inscricao, Modalidade, Resultado, Rede } from '../core/models';
         <p class="mt-1 text-sm text-base-content/60">{{ equipes().length }} equipe(s) nesta conta</p>
         <div class="mt-4 grid gap-3">
           @for (item of equipes(); track item.equipe.id) {
-            <article class="rounded-xl border border-base-300 bg-base-100 p-4 sm:p-5">
+            <article
+              class="cursor-pointer rounded-xl border border-base-300 bg-base-100 p-4 transition-colors hover:bg-base-100/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary sm:p-5"
+              tabindex="0"
+              [attr.aria-label]="'Ver detalhes da equipe ' + item.equipe.nome"
+              (click)="abrirDetalhesEquipe($event)"
+              (keydown.enter)="abrirDetalhesEquipe($event)"
+              (keydown.space)="abrirDetalhesEquipe($event)"
+            >
               <div class="flex flex-wrap items-start justify-between gap-2">
                 <div class="min-w-0">
                   <h3><app-team-details [equipeId]="item.equipe.id" [equipeNome]="item.equipe.nome" classe="link link-primary text-left font-semibold" /></h3>
@@ -172,6 +179,14 @@ export class ParticipantsComponent {
 
   valorDo(event: Event): string {
     return (event.target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement).value;
+  }
+
+  abrirDetalhesEquipe(event: Event): void {
+    if (event instanceof KeyboardEvent) event.preventDefault();
+    const elemento = event.target;
+    if (!(elemento instanceof HTMLElement) || elemento.closest('button, a, input, select, textarea')) return;
+    const card = event.currentTarget;
+    if (card instanceof HTMLElement) card.querySelector<HTMLButtonElement>('app-team-details button')?.click();
   }
 
   selecionarRede(event: Event): void {
