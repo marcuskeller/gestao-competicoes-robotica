@@ -364,9 +364,8 @@ export class StoreService {
     if (!usuario || usuario.tipo_conta !== 'empresa') {
       return { ok: false, erro: AVISO_SEM_PERMISSAO };
     }
-    const descricao = dados.descricao_doacao.trim();
+    const descricao = dados.descricao_doacao.trim() || 'Contribuição financeira para o campeonato.';
     const valor = Number(dados.valor_proposto);
-    if (!descricao) return { ok: false, erro: 'Descreva a finalidade da contribuição.' };
     if (!Number.isFinite(valor) || valor <= 0) {
       return { ok: false, erro: 'Informe um valor válido para a contribuição.' };
     }

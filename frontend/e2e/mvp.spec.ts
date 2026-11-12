@@ -108,7 +108,6 @@ test('cria contas de administração, voluntariado e empresa e permite entrar pe
   await page.getByRole('button', { name: 'Criar perfil' }).click();
   await expect(page.getByRole('heading', { name: 'Área da empresa apoiadora' })).toBeVisible();
   await page.getByLabel('Valor que pretende doar (R$)').fill('2500');
-  await page.getByLabel('Descreva a doação').fill('Doação fictícia de materiais para a arena.');
   await page.getByRole('button', { name: 'Contribuir agora' }).click();
   await expect(page.getByRole('heading', { name: 'Contribuição financeira' })).toBeVisible();
   await page.getByRole('button', { name: /Pix/ }).click();
@@ -119,7 +118,13 @@ test('cria contas de administração, voluntariado e empresa e permite entrar pe
   const companyDb = await database(page);
   const companyUser = companyDb.usuarios.find((user) => user.email === 'carla@empresa.demo');
   expect(companyDb.parcerias.find((item) => item.usuario_id === companyUser?.id))
-    .toMatchObject({ valor_proposto: 2500, tipo_apoio: 'financeiro', metodo_pagamento: 'pix', status: 'contribuicao_demo' });
+    .toMatchObject({
+      valor_proposto: 2500,
+      tipo_apoio: 'financeiro',
+      metodo_pagamento: 'pix',
+      status: 'contribuicao_demo',
+      descricao_doacao: 'Contribuição financeira para o campeonato.',
+    });
   await page.getByRole('button', { name: 'Sair' }).click();
   await page.getByLabel('Tipo de pessoa').selectOption('empresa');
   await page.getByRole('button', { name: /Robôs Joinville/ }).click();

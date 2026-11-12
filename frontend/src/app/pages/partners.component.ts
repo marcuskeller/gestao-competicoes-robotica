@@ -56,8 +56,8 @@ import type { Parceria, Resultado } from '../core/models';
           }
 
           <label class="form-control w-full">
-            <span class="label-text mb-1 font-medium">Descreva a doação</span>
-            <textarea class="textarea textarea-bordered w-full" rows="5" required placeholder="Ex.: Descreva o item ou serviço, a quantidade e as condições da doação." [value]="descricao()" (input)="descricao.set(valorDo($event))"></textarea>
+            <span class="label-text mb-1 font-medium">{{ tipoApoio() === 'financeiro' ? 'Mensagem (opcional)' : 'Descreva a doação' }}</span>
+            <textarea class="textarea textarea-bordered w-full" rows="5" [required]="tipoApoio() !== 'financeiro'" [placeholder]="tipoApoio() === 'financeiro' ? 'Ex.: Mensagem opcional sobre a contribuição.' : 'Ex.: Descreva o item ou serviço, a quantidade e as condições da doação.'" [value]="descricao()" (input)="descricao.set(valorDo($event))"></textarea>
           </label>
           @if (tipoApoio() === 'financeiro') {
             <button class="btn btn-primary min-h-11 w-full" type="button" (click)="abrirCheckoutDemo()">Contribuir agora</button>
@@ -92,12 +92,12 @@ import type { Parceria, Resultado } from '../core/models';
               <p class="mt-1 text-xl font-semibold">{{ valorNumerico() | currency: 'BRL' }}</p>
             </div>
           }
-          <div class="mt-3 rounded-lg border border-base-300 p-4">
-            <p class="text-xs uppercase tracking-wide text-base-content/55">O que será doado</p>
-            <p class="mt-2 whitespace-pre-wrap break-words text-sm leading-6">
-              {{ descricao() || 'A descrição da sua doação aparecerá aqui.' }}
-            </p>
-          </div>
+          @if (descricao().trim()) {
+            <div class="mt-3 rounded-lg border border-base-300 p-4">
+              <p class="text-xs uppercase tracking-wide text-base-content/55">O que será doado</p>
+              <p class="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{{ descricao() }}</p>
+            </div>
+          }
           <p class="mt-4 text-xs leading-5 text-base-content/60">
             @if (tipoApoio() === 'financeiro') {
               A contribuição de demonstração será registrada diretamente, sem análise. Nenhuma cobrança real será feita.
@@ -209,14 +209,13 @@ import type { Parceria, Resultado } from '../core/models';
           <aside class="h-fit rounded-2xl border border-base-300 bg-base-100 p-5 sm:p-6">
             <p class="text-xs font-semibold uppercase tracking-wide text-primary">Resumo da contribuição</p>
             <h3 class="mt-2 break-words text-lg font-semibold">{{ store.usuario()?.organizacao || store.usuario()?.nome }}</h3>
-            <p class="mt-1 text-sm leading-5 text-base-content/65">{{ descricao() }}</p>
+            @if (descricao().trim()) {
+              <p class="mt-1 text-sm leading-5 text-base-content/65">{{ descricao() }}</p>
+            }
             <div class="mt-5 flex items-center justify-between gap-3 border-t border-base-200 pt-4">
               <span class="text-sm text-base-content/65">Total demonstrativo</span>
               <strong class="text-xl">{{ valorNumerico() | currency: 'BRL' }}</strong>
             </div>
-            <p class="mt-5 rounded-lg bg-warning/10 p-3 text-xs leading-5 text-base-content/70">
-              Este protótipo apenas simula o fluxo. Não há integração com a Stripe, geração de cobrança ou movimentação de dinheiro.
-            </p>
           </aside>
         </main>
       </div>
@@ -286,9 +285,9 @@ export class PartnersComponent {
   }
 
   abrirCheckoutDemo(): void {
-    if (!Number.isFinite(this.valorNumerico()) || this.valorNumerico() <= 0 || !this.descricao().trim()) {
+    if (!Number.isFinite(this.valorNumerico()) || this.valorNumerico() <= 0) {
       this.resultado.set({ ok: false });
-      this.mensagem.set('Informe o valor e a finalidade da contribuição para continuar.');
+      this.mensagem.set('Informe um valor válido para a contribuição.');
       return;
     }
     this.resultado.set(null);

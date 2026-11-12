@@ -21,7 +21,7 @@
 
 ## Padrões obrigatórios
 
-- **UX/UI:** interface em português claro, responsiva, consistente e orientada à tarefa; priorize o fluxo principal e estados de carregamento, vazio, sucesso e erro. Dê feedback após ações e confirme operações destrutivas ou irreversíveis.
+- **UX/UI:** interface em português claro, consistente e orientada à tarefa; **todas as telas e fluxos devem se adaptar a celulares, tablets e desktops, incluindo telas largas**. Evite rolagem horizontal e mantenha controles confortáveis ao toque no mobile e layouts bem distribuídos no desktop. Priorize o fluxo principal e estados de carregamento, vazio, sucesso e erro. Dê feedback após ações e confirme operações destrutivas ou irreversíveis.
 - **Acessibilidade:** HTML semântico, navegação por teclado, foco visível, rótulos associados aos campos, contraste adequado e mensagens de estado anunciáveis. Não dependa apenas de cor para comunicar status.
 - **Clean Code:** nomes explícitos, funções pequenas com uma responsabilidade, tipos fortes, validação próxima da entrada e ausência de duplicação evitável. Remova código morto quando alterar a área.
 - **Clean Architecture:** preserve a separação entre apresentação, aplicação e domínio; regras importantes devem ser testáveis sem renderizar componentes nem depender do navegador.
