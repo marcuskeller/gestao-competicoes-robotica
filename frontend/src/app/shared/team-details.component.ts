@@ -123,7 +123,7 @@ export class TeamDetailsComponent {
   readonly equipeId = input.required<number>();
   readonly equipeNome = input('');
   readonly inscricaoId = input<number | undefined>();
-  readonly classe = input('link link-primary text-left');
+  readonly classe = input('text-left font-medium text-base-content transition-colors hover:text-primary focus-visible:rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary');
   readonly aberto = signal(false);
   readonly editando = signal(false);
   readonly nomeEdicao = signal('');

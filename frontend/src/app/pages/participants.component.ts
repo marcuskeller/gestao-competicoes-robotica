@@ -110,7 +110,7 @@ import type { Inscricao, Modalidade, Resultado, Rede } from '../core/models';
             >
               <div class="flex flex-wrap items-start justify-between gap-2">
                 <div class="min-w-0">
-                  <h3><app-team-details [equipeId]="item.equipe.id" [equipeNome]="item.equipe.nome" classe="link link-primary text-left font-semibold" /></h3>
+                  <h3><app-team-details [equipeId]="item.equipe.id" [equipeNome]="item.equipe.nome" classe="text-left font-semibold text-base-content transition-colors hover:text-primary focus-visible:rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" /></h3>
                   <p class="mt-1 text-sm text-base-content/65">{{ item.escola }} · {{ item.modalidade?.nome ?? 'Modalidade não definida' }}</p>
                 </div>
                 <span class="badge badge-outline">{{ statusInscricao(item.inscricao) }}</span>
