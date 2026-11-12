@@ -1,10 +1,13 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { StoreService } from '../core/store.service';
 import type { Resultado } from '../core/models';
 
 @Component({
   selector: 'app-account',
+  imports: [RouterLink],
   template: `
+    <a class="btn btn-ghost btn-sm mb-3" [routerLink]="rotaVoltar()">← Voltar</a>
     <header>
       <p class="text-sm font-semibold text-primary">PERFIL</p>
       <h1 class="mt-2 text-3xl font-semibold">Minha conta</h1>
@@ -53,7 +56,7 @@ import type { Resultado } from '../core/models';
             </label>
             <label class="form-control w-full">
               <span class="label-text mb-1 font-medium">CNPJ</span>
-              <input class="input input-bordered w-full" type="text" inputmode="numeric" autocomplete="off" required placeholder="Ex.: 00.000.000/0000-00" [value]="cnpj()" (input)="cnpj.set(valorDo($event))" />
+              <input class="input input-bordered w-full" type="text" inputmode="numeric" autocomplete="off" required maxlength="18" placeholder="Ex.: 00.000.000/0000-00" [value]="cnpj()" (input)="atualizarCnpj($event)" />
             </label>
           </div>
         </section>
@@ -68,6 +71,12 @@ import type { Resultado } from '../core/models';
 export class AccountComponent {
   readonly store = inject(StoreService);
   readonly usuario = computed(() => this.store.usuario());
+  readonly rotaVoltar = computed(() => {
+    const usuario = this.usuario();
+    if (usuario?.tipo_conta === 'empresa' || usuario?.perfil === 'empresa') return '/app/parceiros';
+    if (usuario?.tipo_conta === 'participante' || usuario?.perfil === 'participante') return '/app/participante';
+    return '/app/dashboard';
+  });
   readonly contaInstitucional = computed(() => {
     const usuario = this.usuario();
     return usuario?.tipo_conta === 'empresa' ||
@@ -78,13 +87,30 @@ export class AccountComponent {
   readonly email = signal(this.usuario()?.email ?? '');
   readonly telefone = signal(this.usuario()?.telefone ?? '');
   readonly organizacao = signal(this.usuario()?.organizacao ?? '');
-  readonly cnpj = signal(this.usuario()?.cnpj ?? '');
+  readonly cnpj = signal(this.formatarCnpj(this.usuario()?.cnpj ?? ''));
   readonly cpf = signal(this.store.db().inscricoesVoluntarios.find((item) => item.usuario_id === this.usuario()?.id)?.cpf ?? '');
   readonly mensagem = signal('');
   readonly resultado = signal<Resultado | null>(null);
 
   valorDo(event: Event): string {
     return (event.target as HTMLInputElement).value;
+  }
+
+  atualizarCnpj(event: Event): void {
+    const campo = event.target as HTMLInputElement;
+    this.cnpj.set(this.formatarCnpj(campo.value));
+    campo.value = this.cnpj();
+  }
+
+  private formatarCnpj(valor: string): string {
+    const digitos = valor.replace(/\D/g, '').slice(0, 14);
+    if (digitos.length <= 2) return digitos;
+    if (digitos.length <= 5) return `${digitos.slice(0, 2)}.${digitos.slice(2)}`;
+    if (digitos.length <= 8) return `${digitos.slice(0, 2)}.${digitos.slice(2, 5)}.${digitos.slice(5)}`;
+    if (digitos.length <= 12) {
+      return `${digitos.slice(0, 2)}.${digitos.slice(2, 5)}.${digitos.slice(5, 8)}/${digitos.slice(8)}`;
+    }
+    return `${digitos.slice(0, 2)}.${digitos.slice(2, 5)}.${digitos.slice(5, 8)}/${digitos.slice(8, 12)}-${digitos.slice(12)}`;
   }
 
   salvar(event: Event): void {
