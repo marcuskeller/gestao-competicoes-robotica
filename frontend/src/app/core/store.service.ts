@@ -66,8 +66,8 @@ export class StoreService {
   podeFazer(acao: string): boolean {
     const usuario = this.usuario();
     if (!usuario) return false;
+    if (acao === 'voluntario.portal') return usuario.tipo_conta === 'voluntario';
     if (usuario.tipo_conta === 'voluntario') {
-      if (acao === 'voluntario.portal') return true;
       if (usuario.permissoes !== undefined) return usuario.permissoes.includes(acao);
       return PERMISSOES_PADRAO_VOLUNTARIO[usuario.perfil]?.includes(acao) ?? false;
     }
