@@ -95,6 +95,18 @@ export class StoreService {
     return { ok: true, id: usuario.id };
   }
 
+  entrarComo(usuarioId: number): Resultado {
+    const db = this._db();
+    const usuario = db.usuarios.find((u) => u.id === usuarioId);
+    if (!usuario) return { ok: false, erro: 'Conta não encontrada. Atualize a página e tente novamente.' };
+    if (!usuario.ativo) return { ok: false, erro: 'Usuário inativo não pode autenticar.' };
+    const proximo = { ...db, usuarioAtualId: usuario.id };
+    this._db.set(this.comLog(proximo, {
+      tabela: 'users', registro_id: usuario.id, acao: 'login', novo: usuario.email,
+    }));
+    return { ok: true, id: usuario.id };
+  }
+
   cadastrarContaDemo(dados: {
     nome: string;
     email: string;

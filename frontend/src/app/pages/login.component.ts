@@ -97,7 +97,7 @@ const TURNOS_VOLUNTARIO = [
                   <button
                     type="button"
                     class="btn btn-outline h-auto min-h-12 min-w-0 justify-between gap-2 whitespace-normal py-3 text-left sm:gap-3"
-                    (click)="entrar(usuario.email)"
+                    (click)="entrar(usuario.id)"
                   >
                     <span class="min-w-0 flex-1">
                       <span class="block truncate font-semibold">
@@ -379,14 +379,14 @@ export class LoginComponent {
     return this.perfis[usuario.perfil].rotulo;
   }
 
-  entrar(email: string): void {
-    const resultado = this.store.entrar(email);
+  entrar(usuarioId: number): void {
+    const resultado = this.store.entrarComo(usuarioId);
     if (!resultado.ok) {
       this.erro.set(resultado.erro ?? 'Não foi possível entrar.');
       return;
     }
     this.erro.set('');
-    void this.router.navigate([this.rotaInicial()]);
+    void this.router.navigate([this.rotaInicial(usuarioId)]);
   }
 
   cadastrar(event: Event): void {
@@ -407,7 +407,7 @@ export class LoginComponent {
       this.erro.set(resultado.erro ?? 'Não foi possível criar o perfil.');
       return;
     }
-    void this.router.navigate([this.rotaInicial()]);
+    void this.router.navigate([this.rotaInicial(resultado.id!)]);
   }
 
   private tipoConta(usuario: Usuario): TipoConta {
@@ -421,8 +421,8 @@ export class LoginComponent {
             : 'voluntario');
   }
 
-  private rotaInicial(): string {
-    const usuario = this.store.usuario();
+  private rotaInicial(usuarioId: number): string {
+    const usuario = this.store.db().usuarios.find((item) => item.id === usuarioId);
     if (usuario?.tipo_conta === 'empresa' || usuario?.perfil === 'empresa') return '/app/parceiros';
     if (usuario?.tipo_conta === 'participante' || usuario?.perfil === 'participante') return '/app/participante';
     if (usuario?.tipo_conta === 'voluntario') return '/app/voluntario';
