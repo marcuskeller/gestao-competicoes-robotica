@@ -558,22 +558,26 @@ export class StoreService {
     if (!this.podeFazer('edicao.editar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };
     const db = this._db();
     const edicao = db.edicoes.find((e) => e.id === id);
+    const statusValidos: StatusEdicao[] = ['planejada', 'inscricoes', 'em_andamento', 'encerrada', 'cancelada'];
+    if (dados.status && !statusValidos.includes(dados.status)) {
+      return { ok: false, erro: 'Status inv\u00e1lido para a edi\u00e7\u00e3o.' };
+    }
     if (!edicao) return { ok: false, erro: 'Edição não encontrada.' };
     if (db.edicoes.some((e) => e.id !== id && e.ano === Number(dados.ano))) {
       return { ok: false, erro: 'Já existe uma edição com este ano (RN-1.1).' };
     }
+    const atualizada = { ...edicao, ...dados };
     const proximo = {
       ...db,
-      edicoes: db.edicoes.map((e) => (e.id === id ? { ...e, ...dados } : e)),
+      edicoes: db.edicoes.map((e) => (e.id === id ? atualizada : e)),
     };
     this._db.set(
       this.comLog(proximo, {
         tabela: 'campeonato_edicoes',
         registro_id: id,
         acao: 'alteracao',
-        campo: 'nome',
-        anterior: edicao.nome,
-        novo: dados.nome ?? edicao.nome,
+        anterior: edicao,
+        novo: atualizada,
       }),
     );
     return { ok: true, id };
@@ -592,6 +596,7 @@ export class StoreService {
           local: texto('local'),
           data_inicio: campos['data_inicio'],
           data_fim: campos['data_fim'],
+          ...(campos['status'] ? { status: campos['status'] as StatusEdicao } : {}),
         });
       case 'modalidades': {
         if (!this.podeFazer('modalidade.editar')) return { ok: false, erro: AVISO_SEM_PERMISSAO };

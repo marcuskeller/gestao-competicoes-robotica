@@ -149,6 +149,17 @@ export class RecordFormComponent {
           field('local', 'Local'),
           field('data_inicio', 'Início', 'date'),
           field('data_fim', 'Fim', 'date'),
+          ...(this.record() ? [{
+            key: 'status',
+            label: 'Status',
+            options: [
+              { value: 'planejada', label: 'Planejada' },
+              { value: 'inscricoes', label: 'Inscri\u00e7\u00f5es abertas' },
+              { value: 'em_andamento', label: 'Em andamento' },
+              { value: 'encerrada', label: 'Encerrada' },
+              { value: 'cancelada', label: 'Cancelada' },
+            ],
+          }] : []),
         ];
       case 'modalidades':
         return [
