@@ -24,7 +24,7 @@ import type { Resultado } from '../core/models';
       </p>
     }
 
-    <form class="mt-6 max-w-3xl rounded-2xl border border-base-300 bg-base-100 p-5 sm:p-6" (submit)="salvar($event)">
+    <form class="mx-auto mt-6 max-w-3xl rounded-2xl border border-base-300 bg-base-100 p-5 sm:p-6" (submit)="salvar($event)">
       <section aria-labelledby="titulo-dados-pessoais">
         <h2 id="titulo-dados-pessoais" class="text-lg font-semibold">Dados pessoais</h2>
         <div class="mt-4 grid gap-4">
