@@ -1,6 +1,7 @@
 import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { StoreService } from '../core/store.service';
+import { DatePickerComponent } from '../shared/date-picker.component';
 import type { ModuleKey } from './records.config';
 import type { CampoDesempate, Escola, Participante, Resultado } from '../core/models';
 
@@ -44,7 +45,7 @@ const options = (key: string, label: string, values: string[]): Field => ({
 
 @Component({
   selector: 'app-record-form',
-  imports: [FormsModule],
+  imports: [FormsModule, DatePickerComponent],
   template: `
     <form class="mt-6 rounded-xl border border-base-300 bg-base-100 p-6" (ngSubmit)="submit()">
       <h2 class="text-lg font-semibold">{{ record() ? 'Editar registro' : 'Adicionar registro' }}</h2>
@@ -74,6 +75,14 @@ const options = (key: string, label: string, values: string[]): Field => ({
                 [placeholder]="f.placeholder"
                 required
               ></textarea>
+            } @else if (f.type === 'date') {
+              <app-date-picker
+                class="mt-1 block"
+                [id]="'field-' + f.key"
+                [label]="f.label"
+                [value]="values[f.key] ?? ''"
+                (valueChange)="values[f.key] = $event"
+              />
             } @else {
               <input
                 class="input w-full mt-1"
