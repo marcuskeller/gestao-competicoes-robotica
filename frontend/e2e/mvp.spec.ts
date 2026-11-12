@@ -125,6 +125,10 @@ test('cria contas de administração, voluntariado e empresa e permite entrar pe
       status: 'contribuicao_demo',
       descricao_doacao: 'Contribuição financeira para o campeonato.',
     });
+  await page.getByRole('link', { name: 'Consultar resultados públicos' }).click();
+  await expect(page.getByRole('heading', { name: 'Resultados públicos' })).toBeVisible();
+  await page.getByRole('link', { name: 'Voltar às contribuições' }).click();
+  await expect(page.getByRole('heading', { name: 'Área da empresa apoiadora' })).toBeVisible();
   await page.getByRole('button', { name: 'Sair' }).click();
   await page.getByLabel('Tipo de pessoa').selectOption('empresa');
   await page.getByRole('button', { name: /Robôs Joinville/ }).click();
