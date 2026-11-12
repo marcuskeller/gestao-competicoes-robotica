@@ -8,23 +8,26 @@ import type { Resultado } from '../core/models';
   selector: 'app-account',
   imports: [RouterLink, IconComponent],
   template: `
-    <a class="btn btn-ghost btn-sm mb-3" [routerLink]="rotaVoltar()">
-      <app-icon nome="arrow" classe="size-4 rotate-180" />
-      Voltar
-    </a>
-    <header>
+    <div class="mx-auto w-full max-w-3xl">
+      <div class="mb-3 flex justify-center">
+        <a class="btn btn-ghost btn-sm" [routerLink]="rotaVoltar()">
+          <app-icon nome="arrow" classe="size-4 rotate-180" />
+          Voltar
+        </a>
+      </div>
+    <header class="text-center">
       <p class="text-sm font-semibold text-primary">PERFIL</p>
       <h1 class="mt-2 text-3xl font-semibold">Minha conta</h1>
       <p class="mt-2 text-base-content/60">Revise e atualize seus dados pessoais e de contato.</p>
     </header>
 
     @if (mensagem()) {
-      <p class="alert mt-5 max-w-3xl" [class.alert-error]="!resultado()?.ok" [class.alert-success]="resultado()?.ok" role="status">
+      <p class="alert mt-5" [class.alert-error]="!resultado()?.ok" [class.alert-success]="resultado()?.ok" role="status">
         {{ mensagem() }}
       </p>
     }
 
-    <form class="mx-auto mt-6 max-w-3xl rounded-2xl border border-base-300 bg-base-100 p-5 sm:p-6" (submit)="salvar($event)">
+    <form class="mt-6 w-full rounded-2xl border border-base-300 bg-base-100 p-5 sm:p-6" (submit)="salvar($event)">
       <section aria-labelledby="titulo-dados-pessoais">
         <h2 id="titulo-dados-pessoais" class="text-lg font-semibold">Dados pessoais</h2>
         <div class="mt-4 grid gap-4">
@@ -70,6 +73,7 @@ import type { Resultado } from '../core/models';
         <button class="btn btn-primary min-h-11 sm:min-w-40" type="submit">Salvar alterações</button>
       </div>
     </form>
+    </div>
   `,
 })
 export class AccountComponent {
