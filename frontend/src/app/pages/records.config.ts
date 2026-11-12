@@ -191,7 +191,7 @@ export const MODULES = {
   interop: {
     title: 'Interoperabilidade',
     permission: 'interop.ver',
-    description: 'Snapshots versionados dos resultados publicados.',
+    description: 'Baixe JSON para integrar com sistemas ou CSV para consultar resultados em planilhas.',
     source: 'publicacoes',
     columns: cols(
       ['etapa', 'Etapa'],

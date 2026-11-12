@@ -82,8 +82,7 @@ import type { Resultado, StatusEdicao } from '../core/models';
       @if (module() === 'interop') {
         <div class="mt-6 rounded-xl border border-base-300 bg-base-100 p-6">
           <p>
-            Exporte os snapshots publicados para consultar o contrato de resultados. A integração
-            HTTP depende do backend.
+            JSON facilita a integração com outros sistemas; CSV é indicado para abrir resultados em planilhas.
           </p>
           <a routerLink="/publico" class="btn btn-outline mt-4">Abrir portal público</a>
         </div>
@@ -138,7 +137,8 @@ import type { Resultado, StatusEdicao } from '../core/models';
             }
           }
           @if (module() === 'interop') {
-            <button class="btn btn-outline btn-sm" (click)="download(number(row['id']))">Baixar JSON</button>
+            <button class="btn btn-outline btn-sm" (click)="downloadJson(number(row['id']))">Baixar JSON</button>
+            <button class="btn btn-outline btn-sm" (click)="download(number(row['id']))">Baixar CSV</button>
           }
           @if (!['edicoes', 'inscricoes', 'etapas', 'disputas', 'publicacao', 'interop'].includes(module())) {
             <span class="text-base-content/40">—</span>
@@ -178,7 +178,7 @@ import type { Resultado, StatusEdicao } from '../core/models';
                         <app-team-details [equipeId]="number(row['equipe_b_id'])" [equipeNome]="equipe(number(row['equipe_b_id']))" />
                       </div>
                     } @else {
-                      {{ display(row[column.key]) }}
+                      {{ displayCell(row, column.key) }}
                     }
                   </dd>
                 </div>
@@ -246,7 +246,7 @@ import type { Resultado, StatusEdicao } from '../core/models';
                         [inscricaoId]="module() === 'inscricoes' ? number(row['id']) : undefined"
                       />
                     } @else {
-                      {{ display(row[column.key]) }}
+                      {{ displayCell(row, column.key) }}
                     }
                   </td>
                 }
@@ -327,9 +327,8 @@ import type { Resultado, StatusEdicao } from '../core/models';
                       }
                     }
                     @if (module() === 'interop') {
-                      <button class="btn btn-outline btn-xs" (click)="download(number(row['id']))">
-                        Baixar JSON
-                      </button>
+                      <button class="btn btn-outline btn-xs" (click)="downloadJson(number(row['id']))">Baixar JSON</button>
+                      <button class="btn btn-outline btn-xs" (click)="download(number(row['id']))">Baixar CSV</button>
                     }
                     @if (
                       ![
@@ -383,7 +382,7 @@ import type { Resultado, StatusEdicao } from '../core/models';
                       @if (column.key === 'status') {
                         <app-status-badge [status]="display(registro[column.key])" />
                       } @else {
-                        {{ display(registro[column.key]) }}
+                        {{ displayCell(registro, column.key) }}
                       }
                     </dd>
                   </div>
@@ -502,6 +501,21 @@ export class RecordsComponent {
         ? JSON.stringify(value)
         : String(value);
   }
+  displayCell(row: Record<string, unknown>, key: string): string {
+    const value = row[key];
+    if (key !== 'publicado_em' || typeof value !== 'string') return this.display(value);
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return this.display(value);
+    return new Intl.DateTimeFormat('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(date);
+  }
   number(value: unknown): number {
     return Number(value);
   }
@@ -598,12 +612,43 @@ export class RecordsComponent {
     this.reasonAction.set(null);
   }
   download(id: number): void {
+    const publication = this.store
+      .db()
+      .publicacoes.find((p) => p.id === id && p.status === 'publicada');
+    const snapshot = publication?.snapshot;
+    if (!snapshot) return;
+    const linhas = [
+      ['Posi\u00e7\u00e3o', 'Equipe', 'Escola', 'Pontos finais', 'Vit\u00f3rias', 'Saldo', 'Empatado'],
+      ...snapshot.classificacao.map((linha) => [
+        linha.posicao,
+        linha.equipe,
+        linha.escola,
+        linha.pontos_finais,
+        linha.vitorias,
+        linha.saldo,
+        linha.empatado ? 'Sim' : 'N\u00e3o',
+      ]),
+    ];
+    const csv = linhas.map((linha) => linha.map((valor) => {
+      const texto = String(valor ?? '');
+      return /[;"\r\n]/.test(texto) ? `"${texto.replaceAll('"', '""')}"` : texto;
+    }).join(';')).join('\r\n');
+    const url = URL.createObjectURL(
+      new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' }),
+    );
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `resultado-v${snapshot.versao}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+  downloadJson(id: number): void {
     const snapshot = this.store
       .db()
       .publicacoes.find((p) => p.id === id && p.status === 'publicada')?.snapshot;
     if (!snapshot) return;
     const url = URL.createObjectURL(
-      new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' }),
+      new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json;charset=utf-8' }),
     );
     const link = document.createElement('a');
     link.href = url;
