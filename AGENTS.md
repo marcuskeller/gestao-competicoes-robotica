@@ -6,7 +6,7 @@
 - A orientação atual do produto amplia o frontend para quatro áreas: Administração, Voluntariado, Participantes/Escolas e Empresas apoiadoras. A Administração gerencia modalidades, editais, usuários, permissões e vagas voluntárias; escolas podem cadastrar equipes e integrantes; empresas podem enviar propostas de apoio.
 - O escopo de implementação atual é somente o frontend Angular. Use dados fictícios; a store local e o `localStorage` servem à demonstração e não devem ser descritos como backend, autenticação real ou persistência compartilhada.
 - Priorize uma jornada demonstrável e coerente: edição e inscrições → disputas → pontuação rastreável → classificação → homologação → publicação. Resultados só aparecem no portal público após publicação.
-- Voluntários selecionam cargos com vagas configuradas pela Administração. Participantes criam uma conta como pessoa física ou escola; depois do login, criam equipes e alunos. Empresas criam uma conta; no protótipo, contribuições financeiras podem ser simuladas diretamente e doações em bens/serviços seguem para análise. A simulação não processa pagamentos nem usa Stripe.
+- Voluntários selecionam cargos com vagas configuradas pela Administração. Participantes criam uma conta como pessoa física ou escola; depois do login, criam equipes e alunos. Empresas criam uma conta; no protótipo, o checkout simulado oferece Pix, boleto e cartão sem coletar dados de cartão ou processar pagamento. Doações em bens/serviços seguem para análise.
 - Não implemente pagamentos reais, integração com Stripe, gestão financeira completa, prestação de contas ou histórico institucional completo sem nova decisão de produto.
 
 ## Arquitetura simples (MVC adaptado ao Angular)

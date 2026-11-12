@@ -3,11 +3,12 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { StoreService } from '../core/store.service';
+import { IconComponent } from '../shared/icon.component';
 import type { Parceria, Resultado } from '../core/models';
 
 @Component({
   selector: 'app-partners',
-  imports: [FormsModule, RouterLink, CurrencyPipe],
+  imports: [FormsModule, RouterLink, CurrencyPipe, IconComponent],
   template: `
     <header>
       <p class="text-sm font-semibold text-primary">PARCERIAS DO CAMPEONATO</p>
@@ -64,26 +65,6 @@ import type { Parceria, Resultado } from '../core/models';
             <button class="btn btn-primary min-h-11 w-full" type="submit">Enviar proposta à organização</button>
           }
 
-          @if (checkoutAberto()) {
-            <div class="rounded-xl border border-primary/30 bg-primary/5 p-4" aria-labelledby="checkout-titulo">
-              <div class="flex items-start justify-between gap-3">
-                <div>
-                  <p class="text-xs font-semibold uppercase tracking-wide text-primary">Prévia de checkout</p>
-                  <h3 id="checkout-titulo" class="mt-1 font-semibold">Contribuição financeira</h3>
-                </div>
-                <span class="badge badge-outline">Demonstração</span>
-              </div>
-              <p class="mt-3 text-2xl font-bold">{{ valorNumerico() | currency: 'BRL' }}</p>
-              <p class="mt-2 text-sm leading-5 text-base-content/70">{{ descricao() }}</p>
-              <p class="mt-3 rounded-lg bg-base-100 p-3 text-xs leading-5 text-base-content/65">
-                Este protótipo não se conecta à Stripe e não processa pagamentos nem dados de cartão. A confirmação abaixo registra apenas uma simulação local.
-              </p>
-              <div class="mt-3 grid gap-2 sm:grid-cols-2">
-                <button class="btn btn-primary min-h-11" type="button" (click)="confirmarContribuicaoDemo()">Confirmar simulação</button>
-                <button class="btn btn-ghost min-h-11" type="button" (click)="checkoutAberto.set(false)">Voltar e editar</button>
-              </div>
-            </div>
-          }
         </form>
       </section>
 
@@ -128,6 +109,119 @@ import type { Parceria, Resultado } from '../core/models';
       </section>
     </div>
 
+    @if (checkoutAberto()) {
+      <div class="fixed inset-0 z-50 overflow-y-auto bg-base-200" role="dialog" aria-modal="true" aria-labelledby="checkout-titulo">
+        <header class="sticky top-0 z-10 border-b border-base-300 bg-base-100/95 backdrop-blur">
+          <div class="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3 sm:px-6">
+            <button class="btn btn-ghost btn-sm" type="button" (click)="voltarDaTelaPagamento()">
+              <app-icon nome="arrow" classe="size-4 rotate-180" />
+              Voltar
+            </button>
+            <div class="min-w-0">
+              <p class="text-xs font-semibold uppercase tracking-wide text-primary">Checkout de demonstração</p>
+              <h2 id="checkout-titulo" class="truncate font-semibold">Contribuição financeira</h2>
+            </div>
+            <span class="badge badge-outline ml-auto">Sem cobrança real</span>
+          </div>
+        </header>
+
+        <main class="mx-auto grid max-w-6xl gap-5 p-4 sm:p-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.8fr)] lg:p-8">
+          <section class="rounded-2xl border border-base-300 bg-base-100 p-5 sm:p-6">
+            <h3 class="text-lg font-semibold">Escolha a forma de pagamento</h3>
+            <p class="mt-1 text-sm text-base-content/65">Selecione Pix, boleto ou cartão.</p>
+
+            <div class="mt-5 grid gap-3 sm:grid-cols-3">
+              @for (opcao of formasPagamento; track opcao.valor) {
+                <button
+                  class="flex min-h-28 flex-col items-start justify-between gap-3 rounded-xl border p-4 text-left transition hover:border-primary hover:bg-primary/5"
+                  [class.border-primary]="formaPagamento() === opcao.valor"
+                  [class.bg-primary/5]="formaPagamento() === opcao.valor"
+                  [class.border-base-300]="formaPagamento() !== opcao.valor"
+                  [attr.aria-pressed]="formaPagamento() === opcao.valor"
+                  type="button"
+                  (click)="selecionarFormaPagamento(opcao.valor)"
+                >
+                  <app-icon [nome]="opcao.icone" classe="size-5 text-primary" />
+                  <span>
+                    <span class="block font-semibold">{{ opcao.titulo }}</span>
+                    <span class="mt-1 block text-xs text-base-content/60">{{ opcao.descricao }}</span>
+                  </span>
+                </button>
+              }
+            </div>
+
+            @if (formaPagamento(); as forma) {
+              <div class="mt-5 rounded-xl border border-base-300 bg-base-200/60 p-4 sm:p-5">
+                @switch (forma) {
+                  @case ('pix') {
+                    <div class="flex items-start gap-3">
+                      <app-icon nome="qrcode" classe="mt-0.5 size-5 text-primary" />
+                      <div>
+                        <h4 class="font-semibold">Pagamento por Pix</h4>
+                        <p class="mt-1 text-sm text-base-content/65">Na versão real, um QR Code e um código Pix serão gerados para esta contribuição.</p>
+                      </div>
+                    </div>
+                    <div class="mt-4 grid min-h-32 place-items-center rounded-lg border border-dashed border-base-300 bg-base-100 p-4 text-center">
+                      <div>
+                        <app-icon nome="qrcode" classe="mx-auto size-12 text-base-content/40" />
+                        <p class="mt-2 text-xs font-medium text-base-content/60">QR Code ilustrativo · não pagável</p>
+                      </div>
+                    </div>
+                  }
+                  @case ('boleto') {
+                    <div class="flex items-start gap-3">
+                      <app-icon nome="barcode" classe="mt-0.5 size-5 text-primary" />
+                      <div>
+                        <h4 class="font-semibold">Pagamento por boleto</h4>
+                        <p class="mt-1 text-sm text-base-content/65">Na versão real, o boleto será emitido com vencimento e linha digitável.</p>
+                      </div>
+                    </div>
+                    <div class="mt-4 rounded-lg border border-base-300 bg-base-100 p-4">
+                      <div class="flex items-center justify-between gap-3 text-xs text-base-content/60">
+                        <span>Boleto demonstrativo</span><span>Não pagável</span>
+                      </div>
+                      <app-icon nome="barcode" classe="mt-4 h-10 w-full text-base-content/70" />
+                      <p class="mt-2 break-all font-mono text-xs text-base-content/60">00000.00000 00000.000000 00000.000000 0 00000000000000</p>
+                    </div>
+                  }
+                  @case ('cartao') {
+                    <div class="flex items-start gap-3">
+                      <app-icon nome="creditcard" classe="mt-0.5 size-5 text-primary" />
+                      <div>
+                        <h4 class="font-semibold">Pagamento por cartão</h4>
+                        <p class="mt-1 text-sm text-base-content/65">Escolha crédito ou débito. Nenhum dado de cartão é solicitado nesta demonstração.</p>
+                      </div>
+                    </div>
+                    <div class="mt-4 grid gap-2 sm:grid-cols-2">
+                      <button class="btn min-h-11" [class.btn-primary]="tipoCartao() === 'credito'" [class.btn-outline]="tipoCartao() !== 'credito'" type="button" (click)="tipoCartao.set('credito')">Crédito</button>
+                      <button class="btn min-h-11" [class.btn-primary]="tipoCartao() === 'debito'" [class.btn-outline]="tipoCartao() !== 'debito'" type="button" (click)="tipoCartao.set('debito')">Débito</button>
+                    </div>
+                  }
+                }
+
+                <button class="btn btn-primary mt-5 min-h-11 w-full" type="button" (click)="confirmarContribuicaoDemo()">
+                  Simular contribuição de {{ valorNumerico() | currency: 'BRL' }}
+                </button>
+              </div>
+            }
+          </section>
+
+          <aside class="h-fit rounded-2xl border border-base-300 bg-base-100 p-5 sm:p-6">
+            <p class="text-xs font-semibold uppercase tracking-wide text-primary">Resumo da contribuição</p>
+            <h3 class="mt-2 break-words text-lg font-semibold">{{ store.usuario()?.organizacao || store.usuario()?.nome }}</h3>
+            <p class="mt-1 text-sm leading-5 text-base-content/65">{{ descricao() }}</p>
+            <div class="mt-5 flex items-center justify-between gap-3 border-t border-base-200 pt-4">
+              <span class="text-sm text-base-content/65">Total demonstrativo</span>
+              <strong class="text-xl">{{ valorNumerico() | currency: 'BRL' }}</strong>
+            </div>
+            <p class="mt-5 rounded-lg bg-warning/10 p-3 text-xs leading-5 text-base-content/70">
+              Este protótipo apenas simula o fluxo. Não há integração com a Stripe, geração de cobrança ou movimentação de dinheiro.
+            </p>
+          </aside>
+        </main>
+      </div>
+    }
+
     <section class="mt-8 max-w-5xl" aria-labelledby="titulo-propostas">
       <h2 id="titulo-propostas" class="text-xl font-semibold">Apoios e propostas</h2>
       <div class="mt-4 grid gap-3">
@@ -141,6 +235,9 @@ import type { Parceria, Resultado } from '../core/models';
                 </p>
                 @if ((proposta.valor_proposto ?? 0) > 0) {
                   <p class="mt-2 font-semibold">{{ proposta.valor_proposto | currency: 'BRL' }}</p>
+                }
+                @if (proposta.metodo_pagamento) {
+                  <p class="mt-1 text-xs text-base-content/60">Forma: {{ rotuloMetodoPagamento(proposta.metodo_pagamento) }}</p>
                 }
               </div>
               <span class="badge badge-outline">{{ rotuloStatus(proposta.status) }}</span>
@@ -159,11 +256,18 @@ import type { Parceria, Resultado } from '../core/models';
 })
 export class PartnersComponent {
   readonly store = inject(StoreService);
+  readonly formasPagamento = [
+    { valor: 'pix', titulo: 'Pix', descricao: 'QR Code ou código Pix', icone: 'qrcode' },
+    { valor: 'boleto', titulo: 'Boleto', descricao: 'Boleto bancário', icone: 'barcode' },
+    { valor: 'cartao', titulo: 'Cartão', descricao: 'Crédito ou débito', icone: 'creditcard' },
+  ] as const;
   readonly tipoApoio = signal<NonNullable<Parceria['tipo_apoio']>>('financeiro');
   readonly valor = signal('');
   readonly valorNumerico = computed(() => Number(this.valor()));
   readonly descricao = signal('');
   readonly checkoutAberto = signal(false);
+  readonly formaPagamento = signal<FormaPagamentoTela | null>(null);
+  readonly tipoCartao = signal<'credito' | 'debito'>('credito');
   readonly mensagem = signal('');
   readonly resultado = signal<Resultado | null>(null);
   readonly propostas = computed(() => {
@@ -178,6 +282,7 @@ export class PartnersComponent {
   selecionarTipoApoio(event: Event): void {
     this.tipoApoio.set(this.valorDo(event) as TipoApoio);
     this.checkoutAberto.set(false);
+    this.formaPagamento.set(null);
   }
 
   abrirCheckoutDemo(): void {
@@ -188,19 +293,37 @@ export class PartnersComponent {
     }
     this.resultado.set(null);
     this.mensagem.set('');
+    this.formaPagamento.set(null);
+    this.tipoCartao.set('credito');
     this.checkoutAberto.set(true);
   }
 
+  selecionarFormaPagamento(forma: FormaPagamentoTela): void {
+    this.formaPagamento.set(forma);
+  }
+
+  voltarDaTelaPagamento(): void {
+    this.checkoutAberto.set(false);
+    this.formaPagamento.set(null);
+  }
+
   confirmarContribuicaoDemo(): void {
+    const forma = this.formaPagamento();
+    if (!forma) return;
+    const metodoPagamento: NonNullable<Parceria['metodo_pagamento']> = forma === 'cartao'
+      ? `cartao_${this.tipoCartao()}`
+      : forma;
     const result = this.store.registrarContribuicaoDemo({
       descricao_doacao: this.descricao(),
       valor_proposto: this.valorNumerico(),
+      metodo_pagamento: metodoPagamento,
     });
     this.resultado.set(result);
     this.mensagem.set(result.ok
       ? 'Contribuição de demonstração registrada. Nenhuma cobrança foi feita.'
       : result.erro ?? 'Não foi possível registrar a contribuição de demonstração.');
     this.checkoutAberto.set(false);
+    this.formaPagamento.set(null);
     if (result.ok) {
       this.descricao.set('');
       this.valor.set('');
@@ -218,6 +341,15 @@ export class PartnersComponent {
 
   rotuloStatus(status: string): string {
     return ({ em_analise: 'Em análise', aprovada: 'Aprovada', recusada: 'Não aprovada', contribuicao_demo: 'Contribuição simulada' } as Record<string, string>)[status] ?? status;
+  }
+
+  rotuloMetodoPagamento(metodo?: NonNullable<Parceria['metodo_pagamento']>): string {
+    return ({
+      pix: 'Pix',
+      boleto: 'Boleto',
+      cartao_credito: 'Cartão de crédito',
+      cartao_debito: 'Cartão de débito',
+    } as Record<string, string>)[metodo ?? ''] ?? '';
   }
 
   enviar(event: Event): void {
@@ -241,3 +373,4 @@ export class PartnersComponent {
 }
 
 type TipoApoio = NonNullable<Parceria['tipo_apoio']>;
+type FormaPagamentoTela = 'pix' | 'boleto' | 'cartao';

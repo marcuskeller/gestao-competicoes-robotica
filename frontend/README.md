@@ -84,7 +84,7 @@ as vagas são limitadas pelo total configurado. Empresas informam apenas os dado
 cadastro e, dentro do portal, descrevem o tipo e os itens/serviços que pretendem doar. Uma prévia
 mostra como a proposta será apresentada antes do envio. Propostas não geram cobrança ou pagamento.
 
-No protótipo, contribuições financeiras podem ser registradas sem fila de análise em um checkout simulado; materiais, serviços e outros apoios seguem para análise da organização. A simulação usa apenas `localStorage`: não conecta à Stripe e não processa pagamentos.
+No protótipo, contribuições financeiras podem ser registradas sem fila de análise em uma tela de checkout simulada com Pix, boleto e cartão de crédito/débito. QR Code e código de barras são ilustrativos; não coletamos dados de cartão. Materiais, serviços e outros apoios seguem para análise da organização. A simulação usa apenas `localStorage`: não conecta à Stripe e não processa pagamentos.
 
 ## Fluxo de demonstração
 

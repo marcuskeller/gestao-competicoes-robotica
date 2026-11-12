@@ -86,6 +86,7 @@ export interface Parceria {
   mensagem: string;
   tipo_apoio?: 'financeiro' | 'materiais' | 'servicos' | 'outro';
   descricao_doacao?: string;
+  metodo_pagamento?: 'pix' | 'boleto' | 'cartao_credito' | 'cartao_debito';
   status: 'em_analise' | 'aprovada' | 'recusada' | 'contribuicao_demo';
 }
 

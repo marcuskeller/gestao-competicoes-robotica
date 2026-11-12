@@ -46,7 +46,7 @@
 | Mesário/voluntário | Consultar tarefas permitidas e lançar pontuação. |
 | Homologação | Conferir, homologar, publicar e retificar resultados com justificativa. |
 | Participante pessoa física ou escola | Criar a conta; após login, cadastrar equipes/integrantes e acompanhar inscrições. |
-| Empresa apoiadora | Criar a conta; após login, simular contribuição financeira direta ou enviar apoio em bens/serviços para análise. |
+| Empresa apoiadora | Criar a conta; após login, escolher Pix, boleto ou cartão numa tela de checkout simulado; apoios em bens/serviços vão para análise. |
 | Público | Consultar resultados publicados. |
 
 ### Escopo
@@ -138,7 +138,7 @@
 |---|---|
 | Fluxos locais dos módulos com dados fictícios. | API Kotlin, PostgreSQL compartilhado e autenticação real. |
 | Criação de conta e áreas por perfil. | Autorização por endpoint, auditoria no servidor e proteção de dados. |
-| Cadastro pós-login de equipes/alunos, propostas em análise e contribuição financeira simulada. | Integração real com Stripe, backend de pagamentos, backups, observabilidade e validação operacional. |
+| Cadastro pós-login de equipes/alunos, propostas em análise e checkout simulado com Pix, boleto e cartão. | Stripe real, backend de pagamentos, geração de cobranças, backups, observabilidade e validação operacional. |
 | Snapshot local de resultado publicado. | Concorrência, transações e publicação atômica no servidor. |
 | Execução, rotas e detalhes | Consultar `frontend/README.md`. |
 | Validação atual | `bun run build` passou; os 12 testes e2e passaram após alinhar cenários aos fluxos atuais. | Reexecutar build e e2e a cada mudança relevante. |

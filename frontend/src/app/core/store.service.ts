@@ -355,7 +355,11 @@ export class StoreService {
     return { ok: true, id: proposta.id };
   }
 
-  registrarContribuicaoDemo(dados: { descricao_doacao: string; valor_proposto: number }): Resultado {
+  registrarContribuicaoDemo(dados: {
+    descricao_doacao: string;
+    valor_proposto: number;
+    metodo_pagamento: NonNullable<Parceria['metodo_pagamento']>;
+  }): Resultado {
     const usuario = this.usuario();
     if (!usuario || usuario.tipo_conta !== 'empresa') {
       return { ok: false, erro: AVISO_SEM_PERMISSAO };
@@ -376,6 +380,7 @@ export class StoreService {
       tipo_apoio: 'financeiro',
       descricao_doacao: descricao,
       valor_proposto: valor,
+      metodo_pagamento: dados.metodo_pagamento,
       mensagem: descricao,
       status: 'contribuicao_demo',
     };
