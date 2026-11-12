@@ -1,13 +1,17 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { StoreService } from '../core/store.service';
+import { IconComponent } from '../shared/icon.component';
 import type { Resultado } from '../core/models';
 
 @Component({
   selector: 'app-account',
-  imports: [RouterLink],
+  imports: [RouterLink, IconComponent],
   template: `
-    <a class="btn btn-ghost btn-sm mb-3" [routerLink]="rotaVoltar()">← Voltar</a>
+    <a class="btn btn-ghost btn-sm mb-3" [routerLink]="rotaVoltar()">
+      <app-icon nome="arrow" classe="size-4 rotate-180" />
+      Voltar
+    </a>
     <header>
       <p class="text-sm font-semibold text-primary">PERFIL</p>
       <h1 class="mt-2 text-3xl font-semibold">Minha conta</h1>
