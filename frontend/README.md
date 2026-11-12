@@ -37,7 +37,7 @@ criados pela seed local em `src/app/core/seed.ts`:
 | Voluntariado | `julia.mentora@arena.demo` — Julia Mentora | Inscrição pendente para montagem de arena |
 | Participante individual | `lucas.estudante@arena.demo` — Lucas Estudante | Inscrição individual pendente, com responsável fictício |
 | Escola participante | `carla.diretora@escola.demo` — Carla Diretora | CNPJ fictício, equipe e estudantes fictícios |
-| Empresa apoiadora | `ana@tecnologia.demo` — Ana Parceira | Proposta fictícia de apoio de R$ 5.000 em análise |
+| Empresa apoiadora | `ana@tecnologia.demo` — Ana Parceira | Doação fictícia de materiais em análise; pode simular contribuição financeira direta |
 
 As contas podem ser alternadas pelo seletor no cabeçalho. Para repetir um cenário do zero,
 limpe os dados do site no navegador ou abra uma janela anônima; os cadastros criados nos
@@ -83,6 +83,8 @@ período da modalidade está aberto. Voluntários informam CPF, telefone, dispon
 as vagas são limitadas pelo total configurado. Empresas informam apenas os dados da conta no
 cadastro e, dentro do portal, descrevem o tipo e os itens/serviços que pretendem doar. Uma prévia
 mostra como a proposta será apresentada antes do envio. Propostas não geram cobrança ou pagamento.
+
+No protótipo, contribuições financeiras podem ser registradas sem fila de análise em um checkout simulado; materiais, serviços e outros apoios seguem para análise da organização. A simulação usa apenas `localStorage`: não conecta à Stripe e não processa pagamentos.
 
 ## Fluxo de demonstração
 

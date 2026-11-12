@@ -6,8 +6,8 @@
 - A orientação atual do produto amplia o frontend para quatro áreas: Administração, Voluntariado, Participantes/Escolas e Empresas apoiadoras. A Administração gerencia modalidades, editais, usuários, permissões e vagas voluntárias; escolas podem cadastrar equipes e integrantes; empresas podem enviar propostas de apoio.
 - O escopo de implementação atual é somente o frontend Angular. Use dados fictícios; a store local e o `localStorage` servem à demonstração e não devem ser descritos como backend, autenticação real ou persistência compartilhada.
 - Priorize uma jornada demonstrável e coerente: edição e inscrições → disputas → pontuação rastreável → classificação → homologação → publicação. Resultados só aparecem no portal público após publicação.
-- Voluntários selecionam cargos com vagas configuradas pela Administração. Participantes criam uma conta como pessoa física ou escola; depois do login, criam equipes e alunos. Empresas criam uma conta e descrevem a doação/apoio em uma proposta para análise; o protótipo não processa pagamentos.
-- Não implemente gestão financeira completa, pagamentos, prestação de contas ou histórico institucional completo sem nova decisão de produto.
+- Voluntários selecionam cargos com vagas configuradas pela Administração. Participantes criam uma conta como pessoa física ou escola; depois do login, criam equipes e alunos. Empresas criam uma conta; no protótipo, contribuições financeiras podem ser simuladas diretamente e doações em bens/serviços seguem para análise. A simulação não processa pagamentos nem usa Stripe.
+- Não implemente pagamentos reais, integração com Stripe, gestão financeira completa, prestação de contas ou histórico institucional completo sem nova decisão de produto.
 
 ## Arquitetura simples (MVC adaptado ao Angular)
 
@@ -17,6 +17,7 @@
 - Componentes de tela devem cuidar da apresentação e interação, delegando regras ao domínio/serviços. Não coloque regras de negócio em templates.
 - Mantenha dependências apontando para dentro: domínio não importa Angular, páginas não acessam `localStorage` diretamente e componentes compartilhados não conhecem detalhes de páginas.
 - Prefira a estrutura e bibliotecas já existentes. Só introduza camadas, abstrações ou dependências quando resolverem uma necessidade concreta do MVP.
+- Use `@lucide/angular` por meio do componente compartilhado `app-icon`; evite SVGs de ícones avulsos nas páginas.
 
 ## Padrões obrigatórios
 

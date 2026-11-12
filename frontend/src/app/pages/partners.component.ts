@@ -27,13 +27,13 @@ import type { Parceria, Resultado } from '../core/models';
       <section class="rounded-2xl border border-base-300 bg-base-100 p-5 sm:p-6">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-primary">Nova proposta</p>
+            <p class="text-xs font-semibold uppercase tracking-wide text-primary">Novo apoio</p>
             <h2 class="mt-1 text-xl font-semibold">O que sua empresa vai doar?</h2>
           </div>
           <span class="badge badge-outline">{{ propostas().length }} proposta(s)</span>
         </div>
         <p class="mt-2 text-sm leading-6 text-base-content/65">
-          Informe o tipo de apoio e os detalhes. A prévia ao lado mostra como a proposta será recebida pela organização.
+          Apoio financeiro pode ser registrado diretamente na demonstração. Materiais, serviços e outros apoios seguem para análise da organização.
         </p>
 
         <form class="mt-5 grid gap-4" (submit)="enviar($event)">
@@ -58,7 +58,32 @@ import type { Parceria, Resultado } from '../core/models';
             <span class="label-text mb-1 font-medium">Descreva a doação</span>
             <textarea class="textarea textarea-bordered w-full" rows="5" required placeholder="Ex.: Descreva o item ou serviço, a quantidade e as condições da doação." [value]="descricao()" (input)="descricao.set(valorDo($event))"></textarea>
           </label>
-          <button class="btn btn-primary min-h-11 w-full" type="submit">Enviar proposta à organização</button>
+          @if (tipoApoio() === 'financeiro') {
+            <button class="btn btn-primary min-h-11 w-full" type="button" (click)="abrirCheckoutDemo()">Contribuir agora</button>
+          } @else {
+            <button class="btn btn-primary min-h-11 w-full" type="submit">Enviar proposta à organização</button>
+          }
+
+          @if (checkoutAberto()) {
+            <div class="rounded-xl border border-primary/30 bg-primary/5 p-4" aria-labelledby="checkout-titulo">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-wide text-primary">Prévia de checkout</p>
+                  <h3 id="checkout-titulo" class="mt-1 font-semibold">Contribuição financeira</h3>
+                </div>
+                <span class="badge badge-outline">Demonstração</span>
+              </div>
+              <p class="mt-3 text-2xl font-bold">{{ valorNumerico() | currency: 'BRL' }}</p>
+              <p class="mt-2 text-sm leading-5 text-base-content/70">{{ descricao() }}</p>
+              <p class="mt-3 rounded-lg bg-base-100 p-3 text-xs leading-5 text-base-content/65">
+                Este protótipo não se conecta à Stripe e não processa pagamentos nem dados de cartão. A confirmação abaixo registra apenas uma simulação local.
+              </p>
+              <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                <button class="btn btn-primary min-h-11" type="button" (click)="confirmarContribuicaoDemo()">Confirmar simulação</button>
+                <button class="btn btn-ghost min-h-11" type="button" (click)="checkoutAberto.set(false)">Voltar e editar</button>
+              </div>
+            </div>
+          }
         </form>
       </section>
 
@@ -70,7 +95,11 @@ import type { Parceria, Resultado } from '../core/models';
               <p class="text-xs font-semibold uppercase tracking-wide text-primary">Apoio ao campeonato</p>
               <h3 class="mt-1 break-words text-lg font-semibold">{{ store.usuario()?.organizacao || 'Sua empresa' }}</h3>
             </div>
-            <span class="badge badge-warning badge-outline">Rascunho</span>
+            @if (tipoApoio() === 'financeiro') {
+              <span class="badge badge-info badge-outline">Contribuição direta · demonstração</span>
+            } @else {
+              <span class="badge badge-warning badge-outline">Aguardando análise</span>
+            }
           </div>
           <div class="mt-5 rounded-lg bg-base-200 p-4">
             <p class="text-xs uppercase tracking-wide text-base-content/55">Tipo de apoio</p>
@@ -78,7 +107,7 @@ import type { Parceria, Resultado } from '../core/models';
           </div>
           @if (tipoApoio() === 'financeiro' && valor()) {
             <div class="mt-3 rounded-lg bg-base-200 p-4">
-              <p class="text-xs uppercase tracking-wide text-base-content/55">Valor proposto</p>
+            <p class="text-xs uppercase tracking-wide text-base-content/55">Valor da contribuição</p>
               <p class="mt-1 text-xl font-semibold">{{ valorNumerico() | currency: 'BRL' }}</p>
             </div>
           }
@@ -89,14 +118,18 @@ import type { Parceria, Resultado } from '../core/models';
             </p>
           </div>
           <p class="mt-4 text-xs leading-5 text-base-content/60">
-            Depois do envio, a proposta aparecerá abaixo com a situação “Em análise”.
+            @if (tipoApoio() === 'financeiro') {
+              A contribuição de demonstração será registrada diretamente, sem análise. Nenhuma cobrança real será feita.
+            } @else {
+              Após o envio, a proposta aparecerá abaixo como “Em análise” até a organização avaliá-la.
+            }
           </p>
         </article>
       </section>
     </div>
 
     <section class="mt-8 max-w-5xl" aria-labelledby="titulo-propostas">
-      <h2 id="titulo-propostas" class="text-xl font-semibold">Propostas enviadas</h2>
+      <h2 id="titulo-propostas" class="text-xl font-semibold">Apoios e propostas</h2>
       <div class="mt-4 grid gap-3">
         @for (proposta of propostas(); track proposta.id) {
           <article class="rounded-xl border border-base-300 bg-base-100 p-4 sm:p-5">
@@ -130,6 +163,7 @@ export class PartnersComponent {
   readonly valor = signal('');
   readonly valorNumerico = computed(() => Number(this.valor()));
   readonly descricao = signal('');
+  readonly checkoutAberto = signal(false);
   readonly mensagem = signal('');
   readonly resultado = signal<Resultado | null>(null);
   readonly propostas = computed(() => {
@@ -143,6 +177,34 @@ export class PartnersComponent {
 
   selecionarTipoApoio(event: Event): void {
     this.tipoApoio.set(this.valorDo(event) as TipoApoio);
+    this.checkoutAberto.set(false);
+  }
+
+  abrirCheckoutDemo(): void {
+    if (!Number.isFinite(this.valorNumerico()) || this.valorNumerico() <= 0 || !this.descricao().trim()) {
+      this.resultado.set({ ok: false });
+      this.mensagem.set('Informe o valor e a finalidade da contribuição para continuar.');
+      return;
+    }
+    this.resultado.set(null);
+    this.mensagem.set('');
+    this.checkoutAberto.set(true);
+  }
+
+  confirmarContribuicaoDemo(): void {
+    const result = this.store.registrarContribuicaoDemo({
+      descricao_doacao: this.descricao(),
+      valor_proposto: this.valorNumerico(),
+    });
+    this.resultado.set(result);
+    this.mensagem.set(result.ok
+      ? 'Contribuição de demonstração registrada. Nenhuma cobrança foi feita.'
+      : result.erro ?? 'Não foi possível registrar a contribuição de demonstração.');
+    this.checkoutAberto.set(false);
+    if (result.ok) {
+      this.descricao.set('');
+      this.valor.set('');
+    }
   }
 
   rotuloTipo(tipo: NonNullable<Parceria['tipo_apoio']>): string {
@@ -155,11 +217,15 @@ export class PartnersComponent {
   }
 
   rotuloStatus(status: string): string {
-    return ({ em_analise: 'Em análise', aprovada: 'Aprovada', recusada: 'Não aprovada' } as Record<string, string>)[status] ?? status;
+    return ({ em_analise: 'Em análise', aprovada: 'Aprovada', recusada: 'Não aprovada', contribuicao_demo: 'Contribuição simulada' } as Record<string, string>)[status] ?? status;
   }
 
   enviar(event: Event): void {
     event.preventDefault();
+    if (this.tipoApoio() === 'financeiro') {
+      this.abrirCheckoutDemo();
+      return;
+    }
     const result = this.store.criarPropostaApoio({
       tipo_apoio: this.tipoApoio(),
       descricao_doacao: this.descricao(),

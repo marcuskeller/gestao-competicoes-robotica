@@ -355,6 +355,37 @@ export class StoreService {
     return { ok: true, id: proposta.id };
   }
 
+  registrarContribuicaoDemo(dados: { descricao_doacao: string; valor_proposto: number }): Resultado {
+    const usuario = this.usuario();
+    if (!usuario || usuario.tipo_conta !== 'empresa') {
+      return { ok: false, erro: AVISO_SEM_PERMISSAO };
+    }
+    const descricao = dados.descricao_doacao.trim();
+    const valor = Number(dados.valor_proposto);
+    if (!descricao) return { ok: false, erro: 'Descreva a finalidade da contribuição.' };
+    if (!Number.isFinite(valor) || valor <= 0) {
+      return { ok: false, erro: 'Informe um valor válido para a contribuição.' };
+    }
+
+    const db = this._db();
+    const contribuicao: Parceria = {
+      id: this.proximoId(db.parcerias),
+      usuario_id: usuario.id,
+      cnpj: usuario.cnpj ?? '',
+      telefone: usuario.telefone ?? '',
+      tipo_apoio: 'financeiro',
+      descricao_doacao: descricao,
+      valor_proposto: valor,
+      mensagem: descricao,
+      status: 'contribuicao_demo',
+    };
+    this._db.set(this.comLog(
+      { ...db, parcerias: [...db.parcerias, contribuicao] },
+      { tabela: 'parcerias', registro_id: contribuicao.id, acao: 'contribuicao_financeira_simulada', novo: contribuicao },
+    ));
+    return { ok: true, id: contribuicao.id };
+  }
+
   avaliarParceria(id: number, status: 'aprovada' | 'recusada'): Resultado {
     if (this.perfil() !== 'administrador') return { ok: false, erro: AVISO_SEM_PERMISSAO };
     const db = this._db();

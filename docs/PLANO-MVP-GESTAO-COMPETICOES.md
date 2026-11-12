@@ -14,7 +14,7 @@
 |---|---|---|
 | Frontend | **Angular + TypeScript**, standalone e Signals | Aplicação atual; interface responsiva por perfil. |
 | Interface visual | **Tailwind CSS + DaisyUI** | Estilos e componentes para desktop e mobile. |
-| Ícones | **Lucide** | Escolha para padronizar ícones SVG nas próximas melhorias; o protótipo ainda usa o componente SVG próprio `app-icon`, sem dependência Lucide instalada. |
+| Ícones | **Lucide para Angular (`@lucide/angular`)** | Ícones SVG usados pelo componente compartilhado `app-icon`; imports de ícones específicos. |
 | API | **Kotlin + Spring Boot**, REST/JSON em `/api/v1` | Backend escolhido; regras e validações no servidor. |
 | Autenticação | **Spring Security** | Autenticar usuários e aplicar permissões no servidor; decidir sessão/token antes da implementação. |
 | Persistência | **PostgreSQL + Spring Data JPA + Flyway** | Banco relacional e migrations versionadas; produção em Amazon RDS. |
@@ -46,7 +46,7 @@
 | Mesário/voluntário | Consultar tarefas permitidas e lançar pontuação. |
 | Homologação | Conferir, homologar, publicar e retificar resultados com justificativa. |
 | Participante pessoa física ou escola | Criar a conta; após login, cadastrar equipes/integrantes e acompanhar inscrições. |
-| Empresa apoiadora | Criar a conta; após login, descrever apoio/doação e acompanhar a proposta. |
+| Empresa apoiadora | Criar a conta; após login, simular contribuição financeira direta ou enviar apoio em bens/serviços para análise. |
 | Público | Consultar resultados publicados. |
 
 ### Escopo
@@ -55,7 +55,7 @@
 |---|---|
 | Edições, modalidades, critérios, regras/editais e desempates versionados. | Pagamentos e prestação de contas. |
 | Escolas, contas, equipes, integrantes e inscrições analisadas pela organização. | Aplicativo nativo e streaming ao vivo. |
-| Cargos/vagas de voluntariado e propostas de apoio empresarial. | Integração real com sistemas municipais e SSO. |
+| Cargos/vagas de voluntariado, propostas de apoio em bens/serviços e contribuição financeira simulada no protótipo. | Pagamentos reais, prestação de contas, integração real com sistemas municipais e SSO. |
 | Etapas, disputas, pontuação, penalidades e classificação. | Múltiplas redes/municípios e analytics avançado. |
 | Homologação, publicação, retificação, auditoria e portal público. | Reavaliar após o piloto. |
 
@@ -138,7 +138,7 @@
 |---|---|
 | Fluxos locais dos módulos com dados fictícios. | API Kotlin, PostgreSQL compartilhado e autenticação real. |
 | Criação de conta e áreas por perfil. | Autorização por endpoint, auditoria no servidor e proteção de dados. |
-| Cadastro pós-login de equipes/alunos e propostas de apoio. | Backups, observabilidade, integração e validação operacional. |
+| Cadastro pós-login de equipes/alunos, propostas em análise e contribuição financeira simulada. | Integração real com Stripe, backend de pagamentos, backups, observabilidade e validação operacional. |
 | Snapshot local de resultado publicado. | Concorrência, transações e publicação atômica no servidor. |
 | Execução, rotas e detalhes | Consultar `frontend/README.md`. |
 | Validação atual | `bun run build` passou; os 12 testes e2e passaram após alinhar cenários aos fluxos atuais. | Reexecutar build e e2e a cada mudança relevante. |

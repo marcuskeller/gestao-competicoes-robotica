@@ -267,7 +267,7 @@ export class UsersComponent {
   }
 
   rotuloStatusParceria(status: string): string {
-    return ({ em_analise: 'Em análise', aprovada: 'Aprovada', recusada: 'Recusada' } as Record<string, string>)[status] ?? status;
+    return ({ em_analise: 'Em análise', aprovada: 'Aprovada', recusada: 'Recusada', contribuicao_demo: 'Contribuição simulada' } as Record<string, string>)[status] ?? status;
   }
 
   rotuloTipoApoio(tipo?: string): string {

@@ -206,7 +206,7 @@ export function criarEstadoInicial(): Database {
     },
   ];
   const parcerias: Database['parcerias'] = [
-    { id: 1, usuario_id: 6, cnpj: '22334444000104', telefone: '(47) 90000-0301', valor_proposto: 5000, mensagem: 'Apoio fictício para kits e materiais da arena.', status: 'em_analise' },
+    { id: 1, usuario_id: 6, cnpj: '22334444000104', telefone: '(47) 90000-0301', valor_proposto: 0, mensagem: 'Doação fictícia de kits e materiais para a arena.', tipo_apoio: 'materiais', descricao_doacao: 'Doação fictícia de kits e materiais para a arena.', status: 'em_analise' },
   ];
 
   const criteriosPontuacao: Database['criteriosPontuacao'] = [

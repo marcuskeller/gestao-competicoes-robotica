@@ -86,7 +86,7 @@ export interface Parceria {
   mensagem: string;
   tipo_apoio?: 'financeiro' | 'materiais' | 'servicos' | 'outro';
   descricao_doacao?: string;
-  status: 'em_analise' | 'aprovada' | 'recusada';
+  status: 'em_analise' | 'aprovada' | 'recusada' | 'contribuicao_demo';
 }
 
 export interface Edicao {
