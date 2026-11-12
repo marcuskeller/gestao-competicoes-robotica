@@ -14,12 +14,7 @@ import { StoreService } from '../core/store.service';
       </p>
     </header>
 
-    <section class="mt-6" aria-labelledby="titulo-acompanhamento">
-      <div>
-        <h2 id="titulo-acompanhamento" class="text-xl font-semibold">Painel do campeonato</h2>
-        <p class="mt-1 text-sm text-base-content/60">Indicadores da edição e atalhos para acompanhar cada área.</p>
-      </div>
-      <div class="mt-4 grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <section aria-label="Indicadores e etapas da edição" class="mt-6 grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <a routerLink="/app/equipes" class="rounded-2xl border border-base-300 bg-base-100 p-5 transition-colors hover:border-primary/40 hover:bg-base-100/80">
           <p class="text-xs font-semibold uppercase tracking-wide text-primary">Participação</p>
           <p class="mt-3 text-4xl font-semibold tabular-nums">{{ resumo().equipes }}</p>
@@ -44,36 +39,23 @@ import { StoreService } from '../core/store.service';
           <h3 class="mt-1 font-semibold">Publicados</h3>
           <p class="mt-2 text-sm text-base-content/60">Homologue as etapas antes de publicar os resultados ao público.</p>
         </a>
-      </div>
-      <p class="mt-3 rounded-xl bg-info/10 p-4 text-sm text-base-content/70">
-        A classificação só fica pública depois da homologação e publicação.
-      </p>
-    </section>
-
-    <section class="mt-8" aria-labelledby="titulo-etapas">
-      <div class="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h2 id="titulo-etapas" class="text-xl font-semibold">Etapas da edição</h2>
-          <p class="mt-1 text-sm text-base-content/60">Status e volume de disputas em cada etapa.</p>
-        </div>
-        <a class="btn btn-ghost btn-sm" routerLink="/app/etapas">Ver todas</a>
-      </div>
-      <div class="mt-4 grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         @for (etapa of resumo().etapas; track etapa.id) {
           <a routerLink="/app/etapas" class="rounded-2xl border border-base-300 bg-base-100 p-5 transition-colors hover:border-primary/40 hover:bg-base-100/80">
             <div class="flex items-start justify-between gap-3">
-              <h3 class="min-w-0 font-semibold">{{ etapa.nome }}</h3>
-              <span class="badge badge-outline shrink-0">{{ statusEtapa(etapa.status) }}</span>
+              <p class="text-xs font-semibold uppercase tracking-wide text-primary">Etapa · {{ statusEtapa(etapa.status) }}</p>
             </div>
-            <p class="mt-4 text-3xl font-semibold tabular-nums">{{ etapa.disputas }}</p>
-            <p class="mt-1 text-sm text-base-content/60">disputa(s) nesta etapa</p>
+            <p class="mt-3 text-4xl font-semibold tabular-nums">{{ etapa.disputas }}</p>
+            <h3 class="mt-1 font-semibold">{{ etapa.nome }}</h3>
+            <p class="mt-2 text-sm text-base-content/60">Disputa(s) nesta etapa.</p>
           </a>
         } @empty {
-          <p class="rounded-2xl border border-dashed border-base-300 p-5 text-sm text-base-content/60">
-            Ainda não há etapas para esta edição.
-          </p>
+          <article class="rounded-2xl border border-dashed border-base-300 p-5">
+            <p class="text-xs font-semibold uppercase tracking-wide text-base-content/50">Etapas</p>
+            <p class="mt-3 text-4xl font-semibold tabular-nums">0</p>
+            <h3 class="mt-1 font-semibold">Etapas cadastradas</h3>
+            <p class="mt-2 text-sm text-base-content/60">Nenhuma etapa cadastrada nesta edição.</p>
+          </article>
         }
-      </div>
     </section>
   `,
 })
