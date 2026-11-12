@@ -96,9 +96,6 @@ interface GrupoNav {
                 >
                   <app-icon [nome]="item.icone" classe="size-4 shrink-0" />
                   <span class="truncate">{{ item.rotulo }}</span>
-                  <span class="ml-auto font-mono text-[10px] text-base-content/30">{{
-                    item.modulo
-                  }}</span>
                 </a>
               }
             }
