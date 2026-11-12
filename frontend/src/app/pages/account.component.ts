@@ -9,13 +9,13 @@ import type { Resultado } from '../core/models';
   imports: [RouterLink, IconComponent],
   template: `
     <div class="mx-auto w-full max-w-3xl">
-      <div class="mb-3 flex justify-center">
+      <div class="mb-3 flex justify-start">
         <a class="btn btn-ghost btn-sm" [routerLink]="rotaVoltar()">
           <app-icon nome="arrow" classe="size-4 rotate-180" />
           Voltar
         </a>
       </div>
-    <header class="text-center">
+    <header class="text-left">
       <p class="text-sm font-semibold text-primary">PERFIL</p>
       <h1 class="mt-2 text-3xl font-semibold">Minha conta</h1>
       <p class="mt-2 text-base-content/60">Revise e atualize seus dados pessoais e de contato.</p>
