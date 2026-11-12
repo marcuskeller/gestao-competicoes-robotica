@@ -1,4 +1,5 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -12,7 +13,7 @@ import type { Resultado, StatusEdicao } from '../core/models';
 
 @Component({
   selector: 'app-records',
-  imports: [FormsModule, RouterLink, StatusBadgeComponent, TeamDetailsComponent, RecordFormComponent],
+  imports: [FormsModule, NgTemplateOutlet, RouterLink, StatusBadgeComponent, TeamDetailsComponent, RecordFormComponent],
   template: `
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
@@ -96,8 +97,111 @@ import type { Resultado, StatusEdicao } from '../core/models';
           (ngModelChange)="search.set($event)"
           placeholder="Digite um nome, status ou código"
       /></label>
+      <ng-template #rowActions let-row>
+        <div class="flex flex-wrap gap-2">
+          @if (
+            module() === 'edicoes' &&
+            nextStatus(row['status']) &&
+            store.podeFazer('edicao.status')
+          ) {
+            <button class="btn btn-outline btn-sm" (click)="advance(row)">Avançar status</button>
+          }
+          @if (
+            module() === 'inscricoes' &&
+            store.podeFazer('inscricao.avaliar') &&
+            ['submetida', 'em_analise'].includes(display(row['status']))
+          ) {
+            <button class="btn btn-success btn-sm" (click)="report(store.avaliarInscricao(number(row['id']), 'aprovada'))">Aprovar</button>
+            <button class="btn btn-outline btn-sm" (click)="requestReason('reject', number(row['id']))">Rejeitar</button>
+          }
+          @if (
+            module() === 'etapas' &&
+            store.podeFazer('chaveamento.gerar') &&
+            !hasMatches(number(row['id']))
+          ) {
+            <button class="btn btn-outline btn-sm" (click)="report(store.gerarChaveamento(number(row['id'])))">Gerar chaveamento</button>
+          }
+          @if (module() === 'disputas') {
+            <a class="btn btn-outline btn-sm" [routerLink]="['/app/pontuar', row['id']]">Pontuação</a>
+            @if (
+              store.podeFazer('disputa.editar') &&
+              !['concluida', 'cancelada', 'wo'].includes(display(row['status']))
+            ) {
+              <button class="btn btn-primary btn-sm" (click)="report(store.atualizarStatusDisputa(number(row['id']), 'concluida'))">Concluir</button>
+            }
+          }
+          @if (module() === 'publicacao') {
+            @if (
+              store.podeFazer('homologar') &&
+              !['homologada', 'publicada', 'cancelada'].includes(display(row['status']))
+            ) {
+              <button class="btn btn-outline btn-sm" (click)="report(store.homologarEtapa(number(row['id'])))">Homologar</button>
+            }
+            @if (store.podeFazer('publicar') && row['status'] === 'homologada') {
+              <button class="btn btn-primary btn-sm" (click)="report(store.publicarEtapa(number(row['id'])))">Publicar</button>
+            }
+            @if (store.podeFazer('retificar') && row['status'] === 'publicada') {
+              <button class="btn btn-outline btn-sm" (click)="requestReason('rectify', number(row['id']))">Retificar</button>
+            }
+          }
+          @if (module() === 'interop') {
+            <button class="btn btn-outline btn-sm" (click)="download(number(row['id']))">Baixar JSON</button>
+          }
+          @if (!['edicoes', 'inscricoes', 'etapas', 'disputas', 'publicacao', 'interop'].includes(module())) {
+            <span class="text-base-content/40">—</span>
+          }
+        </div>
+      </ng-template>
+
+      <section class="mt-4 grid gap-3 xl:hidden" [attr.aria-label]="'Lista: ' + config().title">
+        @for (row of filteredRows(); track row['id']) {
+          <article
+            class="cursor-pointer rounded-xl border border-base-300 bg-base-100 p-4 shadow-sm transition-colors hover:bg-base-200/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+            tabindex="0"
+            [attr.aria-label]="'Ver detalhes: ' + config().title + ' — ' + rotuloRegistro(row)"
+            (click)="abrirDetalhesDaLinha($event, row)"
+            (keydown.enter)="abrirDetalhesDaLinha($event, row)"
+            (keydown.space)="abrirDetalhesDaLinha($event, row)"
+          >
+            <h2 class="break-words text-base font-semibold">{{ rotuloRegistro(row) }}</h2>
+            <dl class="mt-3 grid min-w-0 gap-3 sm:grid-cols-2">
+              @for (column of config().columns; track column.key) {
+                <div class="min-w-0">
+                  <dt class="text-xs font-medium uppercase tracking-wide text-base-content/55">{{ column.label }}</dt>
+                  <dd class="mt-1 break-words text-sm">
+                    @if (column.key === 'status') {
+                      <app-status-badge [status]="display(row[column.key])" />
+                    } @else if (module() === 'equipes' && column.key === 'nome') {
+                      <app-team-details [equipeId]="number(row['id'])" [equipeNome]="display(row[column.key])" />
+                    } @else if (
+                      ['inscricoes', 'participantes', 'resultados', 'classificacao'].includes(module()) &&
+                      ['equipe', 'equipe_nome'].includes(column.key) && row['equipe_id'] !== undefined
+                    ) {
+                      <app-team-details [equipeId]="number(row['equipe_id'])" [equipeNome]="display(row[column.key])" [inscricaoId]="module() === 'inscricoes' ? number(row['id']) : undefined" />
+                    } @else if (module() === 'disputas' && column.key === 'confronto') {
+                      <div class="flex flex-wrap items-center gap-1">
+                        <app-team-details [equipeId]="number(row['equipe_a_id'])" [equipeNome]="equipe(number(row['equipe_a_id']))" />
+                        <span aria-hidden="true">×</span>
+                        <app-team-details [equipeId]="number(row['equipe_b_id'])" [equipeNome]="equipe(number(row['equipe_b_id']))" />
+                      </div>
+                    } @else {
+                      {{ display(row[column.key]) }}
+                    }
+                  </dd>
+                </div>
+              }
+            </dl>
+            <div class="mt-4 border-t border-base-300 pt-3" (click)="$event.stopPropagation()">
+              <ng-container [ngTemplateOutlet]="rowActions" [ngTemplateOutletContext]="{ $implicit: row }" />
+            </div>
+          </article>
+        } @empty {
+          <p class="rounded-xl border border-dashed border-base-300 bg-base-100 p-6 text-center text-sm text-base-content/60">Nenhum registro encontrado.</p>
+        }
+      </section>
+
       <section
-        class="mt-4 max-w-full overflow-x-auto overscroll-x-contain touch-pan-x rounded-xl border border-base-300 bg-base-100"
+        class="mt-4 hidden max-w-full overflow-x-auto overscroll-x-contain rounded-xl border border-base-300 bg-base-100 xl:block"
         role="region"
         [attr.aria-label]="'Tabela: ' + config().title"
         tabindex="0"
