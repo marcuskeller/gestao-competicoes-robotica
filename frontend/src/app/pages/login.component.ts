@@ -1,4 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { StoreService } from '../core/store.service';
 import { PERFIS } from '../core/permissions';
@@ -35,7 +36,7 @@ const TURNOS_VOLUNTARIO = [
 
 @Component({
   selector: 'app-login',
-  imports: [RouterLink, IconComponent],
+  imports: [FormsModule, RouterLink, IconComponent],
   template: `
     <main class="grid min-h-dvh w-full place-items-start bg-base-200 p-3 grid-pattern sm:place-items-center sm:p-6">
       <section class="w-full min-w-0 max-w-xl rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm sm:p-8">
@@ -81,9 +82,11 @@ const TURNOS_VOLUNTARIO = [
               <span class="label-text mb-1 font-medium">Tipo de perfil</span>
               <select
                 class="select select-bordered w-full"
+                name="tipoLogin"
+                autocomplete="off"
                 aria-label="Tipo de perfil"
-                [value]="tipoLogin()"
-                (change)="atualizarTipoLogin($event)"
+                [ngModel]="tipoLogin()"
+                (ngModelChange)="tipoLogin.set($event)"
               >
                 @for (tipo of tiposLogin; track tipo.valor) {
                   <option [value]="tipo.valor">{{ tipo.rotulo }}</option>
@@ -311,7 +314,7 @@ export class LoginComponent {
   readonly tiposLogin = TIPOS_LOGIN;
   readonly turnosVoluntario = TURNOS_VOLUNTARIO;
   readonly modo = signal<'entrar' | 'cadastrar'>('entrar');
-  readonly tipoLogin = signal<TipoConta | 'escola'>('participante');
+  readonly tipoLogin = signal<TipoConta | 'escola'>('administrador');
   readonly tipoCadastro = signal<TipoConta>('voluntario');
   readonly tipoParticipante = signal<'pessoa_fisica' | 'escola'>('pessoa_fisica');
   readonly cargoVoluntarioId = signal<number | ''>('');
@@ -346,10 +349,6 @@ export class LoginComponent {
       return this.tipoConta(usuario) === tipo;
     }),
   );
-
-  atualizarTipoLogin(event: Event): void {
-    this.tipoLogin.set(this.valorDo(event) as TipoConta | 'escola');
-  }
 
   atualizarTipoCadastro(event: Event): void {
     this.tipoCadastro.set(this.valorDo(event) as TipoConta);
