@@ -30,8 +30,8 @@ const TURNOS_VOLUNTARIO = [
   selector: 'app-login',
   imports: [RouterLink, IconComponent],
   template: `
-    <main class="grid min-h-dvh place-items-center bg-base-200 p-4 grid-pattern sm:p-6">
-      <section class="w-full max-w-xl rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm sm:p-8">
+    <main class="grid min-h-dvh w-full place-items-start bg-base-200 p-3 grid-pattern sm:place-items-center sm:p-6">
+      <section class="w-full min-w-0 max-w-xl rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm sm:p-8">
         <span
           class="badge badge-primary badge-outline h-auto min-h-6 max-w-full whitespace-normal px-2 py-1 text-center leading-4"
           >Campeonato Joinvilense de Robótica</span
@@ -84,15 +84,15 @@ const TURNOS_VOLUNTARIO = [
               </select>
             </label>
 
-            <div class="mt-4 grid gap-2">
+            <div class="mt-4 grid min-w-0 gap-2">
               @for (usuario of contasFiltradas(); track usuario.id) {
                 @if (usuario.ativo) {
                   <button
                     type="button"
-                    class="btn btn-outline h-auto min-h-12 justify-between gap-3 py-3 text-left"
+                    class="btn btn-outline h-auto min-h-12 min-w-0 justify-between gap-2 whitespace-normal py-3 text-left sm:gap-3"
                     (click)="entrar(usuario.email)"
                   >
-                    <span class="min-w-0">
+                    <span class="min-w-0 flex-1">
                       <span class="block truncate font-semibold">
                         {{ usuario.organizacao || usuario.nome }}
                       </span>
@@ -100,7 +100,7 @@ const TURNOS_VOLUNTARIO = [
                         {{ usuario.email }}
                       </span>
                     </span>
-                    <span class="shrink-0 text-right text-xs opacity-65">
+                    <span class="max-w-[42%] shrink text-right text-xs leading-tight opacity-65 sm:max-w-none sm:shrink-0">
                       {{ rotuloAtuacao(usuario) }}
                     </span>
                   </button>
@@ -120,7 +120,7 @@ const TURNOS_VOLUNTARIO = [
               ou empresa apoiadora.
             </p>
 
-            <form class="mt-4 grid gap-3" (submit)="cadastrar($event)">
+            <form class="mt-4 grid min-w-0 gap-3" (submit)="cadastrar($event)">
               <label class="form-control w-full">
                 <span class="label-text mb-1 font-medium">Tipo de pessoa</span>
                 <select
