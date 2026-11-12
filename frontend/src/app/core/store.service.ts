@@ -1672,6 +1672,9 @@ export class StoreService {
           const usuarioEscolaId = usuariosSalvos.find(
             (usuario) => usuario.email.toLowerCase() === 'carla.diretora@escola.demo',
           )?.id ?? idsPorUsuarioSeed.get(8) ?? 8;
+          const usuarioPessoaId = usuariosSalvos.find(
+            (usuario) => usuario.email.toLowerCase() === 'lucas.estudante@arena.demo',
+          )?.id ?? idsPorUsuarioSeed.get(7) ?? 7;
           const escolasSalvas = salvo.escolas ?? inicial.escolas;
           const escolaDemoSeed = inicial.escolas.find((escola) => escola.cnpj === '11222333000181')!;
           const escolaDemoExistente = escolasSalvas.find((escola) => escola.cnpj === '11222333000181');
@@ -1684,11 +1687,15 @@ export class StoreService {
               : escola)
             : [...escolasSalvas, { ...escolaDemoSeed, id: escolaDemoId, responsavel_usuario_id: usuarioEscolaId }];
           const equipesSalvas = salvo.equipes ?? inicial.equipes;
-          const equipesDemoSeed = inicial.equipes.filter((equipe) => equipe.responsavel_usuario_id === 8);
+          const equipesDemoSeed = inicial.equipes.filter((equipe) => equipe.responsavel_usuario_id === 8 || equipe.responsavel_usuario_id === 7);
           const equipesComDemo = equipesSalvas.map((equipe) => {
-            const equipeDemo = equipesDemoSeed.find((item) => item.id === equipe.id && item.nome === equipe.nome);
+            const equipeDemo = equipesDemoSeed.find((item) => item.id === equipe.id);
             return equipeDemo
-              ? { ...equipe, escola_id: escolaDemoId, responsavel_usuario_id: usuarioEscolaId }
+              ? {
+                ...equipe,
+                escola_id: escolaDemoId,
+                responsavel_usuario_id: equipeDemo.responsavel_usuario_id === 8 ? usuarioEscolaId : usuarioPessoaId,
+              }
               : equipe;
           });
           return {

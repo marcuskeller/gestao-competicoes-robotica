@@ -30,13 +30,13 @@ criados pela seed local em `src/app/core/seed.ts`:
 
 | Tipo | Conta de demonstração | Cenários disponíveis |
 | --- | --- | --- |
-| Administração | `admin@arena.demo` — Marina Coordenação | Gestão completa, permissões, cargos e vagas |
+| Administração | `admin@arena.demo` — Admin | Gestão completa, permissões, cargos e vagas |
 | Voluntariado | `organizador@arena.demo` — Rafael Organização | Cargo aprovado de mentoria |
 | Voluntariado | `mesario@arena.demo` — Bianca Mesária | Cargo de mesário e permissões limitadas |
 | Voluntariado | `homologador@arena.demo` — Paulo Homologação | Homologação e auditoria |
 | Voluntariado | `julia.mentora@arena.demo` — Julia Mentora | Inscrição pendente para montagem de arena |
-| Participante individual | `lucas.estudante@arena.demo` — Lucas Estudante | Inscrição individual pendente, com responsável fictício |
-| Escola participante | `carla.diretora@escola.demo` — Carla Diretora | CNPJ fictício, equipe e estudantes fictícios |
+| Participante individual | `lucas.estudante@arena.demo` — Lucas Estudante | 3 equipes fictícias com estudantes de demonstração |
+| Escola participante | `carla.diretora@escola.demo` — Carla Diretora | 6 equipes da escola e integrantes de demonstração |
 | Empresa apoiadora | `ana@tecnologia.demo` — SENAI | Doação fictícia de materiais em análise; pode simular contribuição financeira direta |
 
 As contas podem ser alternadas pelo seletor no cabeçalho. Para repetir um cenário do zero,

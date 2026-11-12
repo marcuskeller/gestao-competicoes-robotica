@@ -269,7 +269,7 @@ export function criarEstadoInicial(): Database {
 
   const escolaDemo: Escola = {
     id: escolas.length + 1,
-    identificador_publico: uuid(),
+    identificador_publico: '00000000-0000-4000-8000-000000000008',
     nome: 'Escola Municipal de Robótica Demo',
     rede: 'municipal',
     municipio: 'Joinville',
@@ -279,8 +279,8 @@ export function criarEstadoInicial(): Database {
     ativo: true,
   };
   const equipes = gerarEquipes(escolas, edicaoAtual.id).map((equipe) =>
-    equipe.id <= 3
-      ? { ...equipe, escola_id: escolaDemo.id, responsavel_usuario_id: 8 }
+    equipe.id <= 6
+      ? { ...equipe, escola_id: escolaDemo.id, responsavel_usuario_id: equipe.id <= 3 ? 8 : 7 }
       : equipe,
   );
   escolas.push(escolaDemo);

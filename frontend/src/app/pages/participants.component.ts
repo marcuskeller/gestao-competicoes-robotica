@@ -23,16 +23,14 @@ import type { Inscricao, Modalidade, Resultado, Rede } from '../core/models';
       </p>
     }
 
-    @if (tipoEscola()) {
-      <div class="mt-6 grid w-full grid-cols-2 gap-2 sm:inline-grid sm:w-auto" role="tablist" aria-label="Área da escola">
-        <button class="tab min-h-11 h-auto whitespace-normal rounded-lg px-3 text-center leading-tight" [class.tab-active]="abaEscola() === 'cadastro'" [attr.aria-selected]="abaEscola() === 'cadastro'" role="tab" type="button" (click)="abaEscola.set('cadastro')">Cadastrar equipe</button>
-        <button class="tab min-h-11 h-auto whitespace-normal rounded-lg px-3 text-center leading-tight" [class.tab-active]="abaEscola() === 'equipes'" [attr.aria-selected]="abaEscola() === 'equipes'" role="tab" type="button" (click)="abaEscola.set('equipes')">Equipes da escola ({{ equipes().length }})</button>
-      </div>
-    }
+    <div class="mt-6 grid w-full grid-cols-2 gap-2 sm:inline-grid sm:w-auto" role="tablist" aria-label="Gerenciar equipes">
+      <button class="tab min-h-11 h-auto whitespace-normal rounded-lg px-3 text-center leading-tight" [class.tab-active]="abaEquipes() === 'cadastro'" [attr.aria-selected]="abaEquipes() === 'cadastro'" role="tab" type="button" (click)="abaEquipes.set('cadastro')">Cadastrar equipe</button>
+      <button class="tab min-h-11 h-auto whitespace-normal rounded-lg px-3 text-center leading-tight" [class.tab-active]="abaEquipes() === 'equipes'" [attr.aria-selected]="abaEquipes() === 'equipes'" role="tab" type="button" (click)="abaEquipes.set('equipes')">{{ tipoEscola() ? 'Equipes da escola' : 'Minhas equipes' }} ({{ equipes().length }})</button>
+    </div>
 
     <div class="mt-6 grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-      @if (!tipoEscola() || abaEscola() === 'cadastro') {
-      <section class="h-fit rounded-2xl border border-base-300 bg-base-100 p-5 sm:p-6" [style.grid-column]="tipoEscola() ? '1 / -1' : null">
+      @if (abaEquipes() === 'cadastro') {
+      <section class="mx-auto h-fit w-full max-w-3xl rounded-2xl border border-base-300 bg-base-100 p-5 sm:p-6" style="grid-column: 1 / -1">
         <h2 class="text-xl font-semibold">Cadastrar equipe e alunos</h2>
         <p class="mt-2 text-sm leading-6 text-base-content/65">
           Cadastre uma equipe por vez. Você poderá voltar e incluir outras equipes depois.
@@ -104,11 +102,11 @@ import type { Inscricao, Modalidade, Resultado, Rede } from '../core/models';
       </section>
       }
 
-      @if (!tipoEscola() || abaEscola() === 'equipes') {
-      <section [style.grid-column]="tipoEscola() ? '1 / -1' : null">
+      @if (abaEquipes() === 'equipes') {
+      <section class="mx-auto w-full max-w-5xl" style="grid-column: 1 / -1">
         <h2 class="text-xl font-semibold">Equipes cadastradas</h2>
         <p class="mt-1 text-sm text-base-content/60">{{ equipes().length }} equipe(s) nesta conta</p>
-        <div class="mt-4 grid gap-3">
+        <div class="mt-4 grid gap-3 md:grid-cols-2">
           @for (item of equipes(); track item.equipe.id) {
             <article
               class="cursor-pointer rounded-xl border border-base-300 bg-base-100 p-4 transition-colors hover:bg-base-100/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary sm:p-5"
@@ -164,7 +162,7 @@ export class ParticipantsComponent {
   readonly alunosTexto = signal('');
   readonly mensagem = signal('');
   readonly resultado = signal<Resultado | null>(null);
-  readonly abaEscola = signal<'cadastro' | 'equipes'>('cadastro');
+  readonly abaEquipes = signal<'cadastro' | 'equipes'>('cadastro');
 
   readonly tipoEscola = computed(() => this.store.usuario()?.tipo_participante === 'escola');
   readonly modalidades = computed(() => this.store.db().modalidades.filter((item) => item.ativo));
@@ -235,6 +233,7 @@ export class ParticipantsComponent {
     if (result.ok) {
       this.nomeEquipe.set('');
       this.alunosTexto.set('');
+      this.abaEquipes.set('equipes');
     }
   }
 
