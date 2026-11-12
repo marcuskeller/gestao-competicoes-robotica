@@ -196,6 +196,32 @@ import type { Parceria, Resultado } from '../core/models';
                       <button class="btn min-h-11" [class.btn-primary]="tipoCartao() === 'credito'" [class.btn-outline]="tipoCartao() !== 'credito'" type="button" (click)="tipoCartao.set('credito')">Crédito</button>
                       <button class="btn min-h-11" [class.btn-primary]="tipoCartao() === 'debito'" [class.btn-outline]="tipoCartao() !== 'debito'" type="button" (click)="tipoCartao.set('debito')">Débito</button>
                     </div>
+                    <div class="mt-4 rounded-lg border border-base-300 bg-base-100 p-4">
+                      <div>
+                        <h5 class="text-sm font-semibold">Dados do cartão <span class="font-normal text-base-content/55">(opcionais)</span></h5>
+                        <p class="mt-1 text-xs leading-5 text-base-content/60">Use apenas dados fictícios. Estes campos não são enviados nem salvos e não são necessários para a simulação.</p>
+                      </div>
+                      <div class="mt-4 grid gap-3">
+                        <label class="form-control w-full">
+                          <span class="label-text mb-1 text-sm font-medium">Nome impresso no cartão</span>
+                          <input class="input input-bordered w-full" type="text" autocomplete="off" placeholder="Ex.: NOME SOBRENOME" [value]="nomeTitularCartao()" (input)="nomeTitularCartao.set(valorDo($event))" />
+                        </label>
+                        <label class="form-control w-full">
+                          <span class="label-text mb-1 text-sm font-medium">Número do cartão</span>
+                          <input class="input input-bordered w-full" type="text" inputmode="numeric" autocomplete="off" maxlength="23" placeholder="Ex.: 0000 0000 0000 0000" [value]="numeroCartao()" (input)="numeroCartao.set(valorDo($event))" />
+                        </label>
+                        <div class="grid gap-3 sm:grid-cols-2">
+                          <label class="form-control w-full">
+                            <span class="label-text mb-1 text-sm font-medium">Validade</span>
+                            <input class="input input-bordered w-full" type="text" inputmode="numeric" autocomplete="off" maxlength="5" placeholder="Ex.: MM/AA" [value]="validadeCartao()" (input)="validadeCartao.set(valorDo($event))" />
+                          </label>
+                          <label class="form-control w-full">
+                            <span class="label-text mb-1 text-sm font-medium">Código de segurança</span>
+                            <input class="input input-bordered w-full" type="text" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="Ex.: 000" [value]="codigoSegurancaCartao()" (input)="codigoSegurancaCartao.set(valorDo($event))" />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
                   }
                 }
 
@@ -267,6 +293,10 @@ export class PartnersComponent {
   readonly checkoutAberto = signal(false);
   readonly formaPagamento = signal<FormaPagamentoTela | null>(null);
   readonly tipoCartao = signal<'credito' | 'debito'>('credito');
+  readonly nomeTitularCartao = signal('');
+  readonly numeroCartao = signal('');
+  readonly validadeCartao = signal('');
+  readonly codigoSegurancaCartao = signal('');
   readonly mensagem = signal('');
   readonly resultado = signal<Resultado | null>(null);
   readonly propostas = computed(() => {
@@ -282,6 +312,7 @@ export class PartnersComponent {
     this.tipoApoio.set(this.valorDo(event) as TipoApoio);
     this.checkoutAberto.set(false);
     this.formaPagamento.set(null);
+    this.limparDadosCartao();
   }
 
   abrirCheckoutDemo(): void {
@@ -294,16 +325,19 @@ export class PartnersComponent {
     this.mensagem.set('');
     this.formaPagamento.set(null);
     this.tipoCartao.set('credito');
+    this.limparDadosCartao();
     this.checkoutAberto.set(true);
   }
 
   selecionarFormaPagamento(forma: FormaPagamentoTela): void {
     this.formaPagamento.set(forma);
+    if (forma !== 'cartao') this.limparDadosCartao();
   }
 
   voltarDaTelaPagamento(): void {
     this.checkoutAberto.set(false);
     this.formaPagamento.set(null);
+    this.limparDadosCartao();
   }
 
   confirmarContribuicaoDemo(): void {
@@ -323,10 +357,18 @@ export class PartnersComponent {
       : result.erro ?? 'Não foi possível registrar a contribuição de demonstração.');
     this.checkoutAberto.set(false);
     this.formaPagamento.set(null);
+    this.limparDadosCartao();
     if (result.ok) {
       this.descricao.set('');
       this.valor.set('');
     }
+  }
+
+  private limparDadosCartao(): void {
+    this.nomeTitularCartao.set('');
+    this.numeroCartao.set('');
+    this.validadeCartao.set('');
+    this.codigoSegurancaCartao.set('');
   }
 
   rotuloTipo(tipo: NonNullable<Parceria['tipo_apoio']>): string {
