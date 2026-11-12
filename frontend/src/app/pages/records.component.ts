@@ -114,13 +114,6 @@ import type { Resultado, StatusEdicao } from '../core/models';
             <button class="btn btn-success btn-sm" (click)="report(store.avaliarInscricao(number(row['id']), 'aprovada'))">Aprovar</button>
             <button class="btn btn-outline btn-sm" (click)="requestReason('reject', number(row['id']))">Rejeitar</button>
           }
-          @if (
-            module() === 'etapas' &&
-            store.podeFazer('chaveamento.gerar') &&
-            !hasMatches(number(row['id']))
-          ) {
-            <button class="btn btn-outline btn-sm" (click)="report(store.gerarChaveamento(number(row['id'])))">Gerar chaveamento</button>
-          }
           @if (module() === 'disputas') {
             <a class="btn btn-outline btn-sm" [routerLink]="['/app/pontuar', row['id']]">Pontuação</a>
             @if (
@@ -284,18 +277,6 @@ import type { Resultado, StatusEdicao } from '../core/models';
                         (click)="requestReason('reject', number(row['id']))"
                       >
                         Rejeitar
-                      </button>
-                    }
-                    @if (
-                      module() === 'etapas' &&
-                      store.podeFazer('chaveamento.gerar') &&
-                      !hasMatches(number(row['id']))
-                    ) {
-                      <button
-                        class="btn btn-outline btn-xs"
-                        (click)="report(store.gerarChaveamento(number(row['id'])))"
-                      >
-                        Gerar chaveamento
                       </button>
                     }
                     @if (module() === 'disputas') {
@@ -575,9 +556,6 @@ export class RecordsComponent {
   }
   modalidade(id: number): string {
     return this.store.db().modalidades.find((m) => m.id === id)?.nome ?? '—';
-  }
-  hasMatches(id: number): boolean {
-    return this.store.db().disputas.some((d) => d.etapa_id === id);
   }
   report(result: Resultado): void {
     this.message.set(result);
